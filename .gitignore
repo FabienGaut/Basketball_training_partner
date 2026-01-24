@@ -1,0 +1,87 @@
+# ===================
+# Python
+# ===================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+.env
+.env.*
+pip-log.txt
+pip-delete-this-directory.txt
+
+# PyTorch / Ultralytics
+*.pth
+runs/
+wandb/
+
+# ===================
+# C++ / CMake
+# ===================
+# Build directories
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Compiled objects
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+
+# Executables
+*.exe
+*.out
+detectBasketBallPlayer
+
+# ===================
+# Dependencies
+# ===================
+deps/
+
+# ===================
+# Models (optionnel - decommenter si les modeles sont trop gros)
+# ===================
+# models/*.pt
+# models/*.onnx
+
+# ===================
+# IDE / Editeurs
+# ===================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.cproject
+.settings/
+
+# ===================
+# OS
+# ===================
+.DS_Store
+Thumbs.db
+*.log
+
+# ===================
+# Docker
+# ===================
+docker/*.tar
+
+# ===================
+# Divers
+# ===================
+*.sqlite3
+.claude/
+*.bak
+*.tmp
