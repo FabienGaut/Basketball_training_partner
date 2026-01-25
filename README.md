@@ -360,6 +360,7 @@ ros2 topic echo /basketball_player
 
 - [x] Envoi des données sur un topic ROS 2
 - [ ] Entrainer le modele avec des nouvelles données pour pouvoir identifier une balle floue en dribble ou dans les mains du joueur
+- [ ] Réussir à estimer la distance du joueur
 - [ ] Noeud subscriber pour les servomoteurs
 - [ ] Noeud subscriber pour les moteurs de déplacement
 - [ ] Lancement via launch file ROS 2

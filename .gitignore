@@ -51,8 +51,10 @@ deps/
 # ===================
 # Models (optionnel - decommenter si les modeles sont trop gros)
 # ===================
-# models/*.pt
-# models/*.onnx
+models/
+models/*
+*.onnx
+*.pt
 
 # ===================
 # IDE / Editeurs
@@ -84,9 +86,6 @@ docker/*.tar
 ros2_ws/build/
 ros2_ws/install/
 ros2_ws/log/
-ros2_ws/src/build/
-ros2_ws/src/install/
-ros2_ws/src/log/
 *.pyc
 COLCON_IGNORE
 AMENT_IGNORE
