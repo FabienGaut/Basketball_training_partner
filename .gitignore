@@ -97,3 +97,7 @@ AMENT_IGNORE
 .claude/
 *.bak
 *.tmp
+
+# Large Docker images
+ros_image.tar
+*.tar
