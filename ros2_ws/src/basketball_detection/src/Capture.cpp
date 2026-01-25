@@ -1,11 +1,11 @@
-#include "Capture.hpp"
-#include "Utils.hpp"
+#include "basketball_detection/Capture.hpp"
+#include "basketball_detection/Utils.hpp"
 #include <iostream>
 #include <sstream>
 #include <iomanip>
 #include <chrono>
 
-void capture(const Config& config, YOLODetector& personDetector, YOLODetector& basketDetector) {
+void capture(const Config& config, YOLODetector& personDetector, YOLODetector& basketDetector, PlayerCallback onPlayerDetected) {
     cv::VideoCapture cap(config.webcamIndex);
 
     if (!cap.isOpened()) {
@@ -82,8 +82,10 @@ void capture(const Config& config, YOLODetector& personDetector, YOLODetector& b
                     if (pointInBox(cx, cy, person.x1, person.y1, person.x2, person.y2)) {
                         label = "basketball player";
                         color = cv::Scalar(0, 255, 0);  // Vert pour un joueur avec ballon
-                        
-                        //TODO : ENVOYER LES COORDONNEES DU JOUEUR DE BASKET SUR LE TOPIC ROS
+
+                        if (onPlayerDetected) {
+                            onPlayerDetected(person);
+                        }
 
                         break;  // Pas besoin de vérifier les autres ballons
                     }
