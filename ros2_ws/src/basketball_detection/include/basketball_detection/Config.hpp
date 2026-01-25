@@ -9,6 +9,7 @@ struct Config {
     std::string personModelPath;
     std::string basketModelPath;
     int frameWidth = 640;
+    int frameHeight = 480;
     bool drawBalls = true;
     bool drawPlayers = true;
     std::string logLevel = "INFO";

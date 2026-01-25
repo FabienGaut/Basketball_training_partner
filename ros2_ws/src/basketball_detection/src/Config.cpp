@@ -34,6 +34,7 @@ Config parseConfig(const std::string& filename) {
                 else if (key == "PERSON_MODEL_PATH") config.personModelPath = value;
                 else if (key == "BASKET_MODEL_PATH") config.basketModelPath = value;
                 else if (key == "FRAME_WIDTH") config.frameWidth = std::stoi(value);
+                else if (key == "FRAME_HEIGHT") config.frameHeight = std::stoi(value);
                 else if (key == "log_level") config.logLevel = value;
             }
             else if (currentSection == "Visualisation") {
