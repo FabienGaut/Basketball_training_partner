@@ -52,6 +52,9 @@ deps/
 # Models (optionnel - decommenter si les modeles sont trop gros)
 # ===================
 models/
+models/*
+*.onnx
+*.pt
 
 # ===================
 # IDE / Editeurs
