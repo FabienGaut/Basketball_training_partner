@@ -1,3 +1,5 @@
+## 🚧 Project status: Work in progress
+
 # Basketball Player Detection - Robot Defender
 
 Système de vision par ordinateur pour robot défenseur de basketball. Le projet détecte en temps réel les joueurs tenant un ballon et transmet les coordonnées du centre de leur bounding box via ROS pour permettre au robot de se positionner comme un défenseur face au porteur du ballon.
