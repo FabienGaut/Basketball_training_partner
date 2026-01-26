@@ -51,8 +51,10 @@ deps/
 # ===================
 # Models (optionnel - decommenter si les modeles sont trop gros)
 # ===================
-# models/*.pt
-# models/*.onnx
+models/
+models/*
+*.onnx
+*.pt
 
 # ===================
 # IDE / Editeurs
@@ -79,9 +81,23 @@ Thumbs.db
 docker/*.tar
 
 # ===================
+# ROS 2
+# ===================
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+*.pyc
+COLCON_IGNORE
+AMENT_IGNORE
+
+# ===================
 # Divers
 # ===================
 *.sqlite3
 .claude/
 *.bak
 *.tmp
+
+# Large Docker images
+ros_image.tar
+*.tar

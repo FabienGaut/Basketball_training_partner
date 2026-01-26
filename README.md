@@ -1,3 +1,5 @@
+## 🚧 Project status: Work in progress
+
 # Basketball Player Detection - Robot Defender
 
 Système de vision par ordinateur pour robot défenseur de basketball. Le projet détecte en temps réel les joueurs tenant un ballon et transmet les coordonnées du centre de leur bounding box via ROS pour permettre au robot de se positionner comme un défenseur face au porteur du ballon.
@@ -23,14 +25,15 @@ Le système utilise deux modèles YOLO en parallèle :
 
 ## Versions disponibles
 
-Le projet propose deux implémentations :
+Le projet propose trois implémentations :
 
-| Version | Performance | Format modèles | Recommandée |
+| Version | Performance | Format modèles | Cas d'usage |
 |---------|-------------|----------------|-------------|
-| **C++** | 5-10.4 FPS | ONNX | Oui |
-| **Python** | 4-9.4 FPS | PyTorch | Non |
+| **ROS 2** | 5-10 FPS | ONNX | Intégration robot (recommandée) |
+| **C++ standalone** | 5-10.4 FPS | ONNX | Tests sans ROS |
+| **Python** | 4-9.4 FPS | PyTorch | Prototypage |
 
-La version C++ est plus performante et sera utilisée pour l'intégration ROS.
+La version ROS 2 est recommandée pour l'intégration avec le robot défenseur.
 
 ## Structure du projet
 
@@ -38,7 +41,7 @@ La version C++ est plus performante et sera utilisée pour l'intégration ROS.
 ball_detection/
 ├── config/
 │   └── config.ini              # Configuration partagée
-├── cpp/                        # Version C++ (recommandée)
+├── cpp/                        # Version C++ standalone
 │   ├── CMakeLists.txt
 │   ├── include/
 │   │   ├── Config.hpp
@@ -53,6 +56,25 @@ ball_detection/
 │   │   ├── Capture.cpp
 │   │   └── Utils.cpp
 │   └── build/
+├── ros2_ws/                    # Workspace ROS 2
+│   └── src/
+│       └── basketball_detection/
+│           ├── CMakeLists.txt
+│           ├── package.xml
+│           ├── include/basketball_detection/
+│           │   ├── Config.hpp
+│           │   ├── YOLODetector.hpp
+│           │   ├── Capture.hpp
+│           │   ├── Detection.hpp
+│           │   └── Utils.hpp
+│           ├── src/
+│           │   ├── publisher_node.cpp  # Noeud ROS principal
+│           │   ├── Config.cpp
+│           │   ├── YOLODetector.cpp
+│           │   ├── Capture.cpp
+│           │   └── Utils.cpp
+│           └── deps/
+│               └── onnxruntime-linux-x64-1.17.0/
 ├── python/                     # Version Python
 │   ├── detect.py
 │   └── requirements.txt
@@ -66,7 +88,7 @@ ball_detection/
 ├── docker/
 │   ├── dockerfile_python
 │   ├── dockerfile_cpp
-│   └── docker_compose.yaml
+│   └── compose.yaml
 ├── utils/
 │   └── export_models_to_onnx.py
 ├── tests/
@@ -238,18 +260,112 @@ python utils/export_models_to_onnx.py
               └────────────────────────┘
 ```
 
-## Intégration ROS (à venir)
+## Installation - Version ROS 2
 
-L'intégration ROS permettra de :
-- Publier les coordonnées du centre de la bounding box sur un topic
-- Communiquer avec les noeuds de contrôle des servomoteurs
-- Contrôler les moteurs pour le déplacement du robot
+La version ROS 2 permet d'intégrer la détection dans un système robotique complet.
+
+### Prérequis
+
+- ROS 2 Humble ou plus récent
+- colcon build tools
+- OpenCV 4.x
+- ONNX Runtime (inclus dans `ros2_ws/src/basketball_detection/deps/`)
+
+### Installation ROS 2 (Ubuntu 22.04)
+
+```bash
+# Installation ROS 2 Humble
+sudo apt update && sudo apt install -y locales
+sudo locale-gen en_US en_US.UTF-8
+sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+export LANG=en_US.UTF-8
+
+sudo apt install software-properties-common
+sudo add-apt-repository universe
+sudo apt update && sudo apt install curl -y
+sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+sudo apt update
+sudo apt install ros-humble-desktop ros-dev-tools
+```
+
+### Compilation du workspace
+
+```bash
+# Sourcer ROS 2
+source /opt/ros/humble/setup.bash
+
+# Compiler le workspace
+cd ros2_ws
+colcon build --packages-select basketball_detection
+
+# Sourcer le workspace
+source install/setup.bash
+```
+
+### Exécution du noeud
+
+```bash
+# Dans un terminal
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+
+# Lancer le noeud de détection
+ros2 run basketball_detection publisher_node --ros-args -p config_path:=/chemin/vers/config/config.ini
+```
+
+### Topic publié
+
+| Topic | Type | Description |
+|-------|------|-------------|
+| `/basketball_player` | `geometry_msgs/msg/Point` | Coordonnées (x, y) du centre de la bounding box du joueur avec ballon |
+
+### Écouter le topic
+
+```bash
+ros2 topic echo /basketball_player
+```
+
+### Architecture du noeud ROS 2
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                  publisher_node                          │
+│  ┌─────────────┐                                        │
+│  │   Webcam    │                                        │
+│  └──────┬──────┘                                        │
+│         │                                               │
+│         ▼                                               │
+│  ┌─────────────────────────────┐                        │
+│  │   YOLODetector (x2)         │                        │
+│  │   - personDetector (COCO)   │                        │
+│  │   - basketDetector (Custom) │                        │
+│  └──────────────┬──────────────┘                        │
+│                 │                                       │
+│                 ▼                                       │
+│  ┌─────────────────────────────┐                        │
+│  │   Classification            │                        │
+│  │   (point-in-box)            │                        │
+│  └──────────────┬──────────────┘                        │
+│                 │                                       │
+│                 ▼                                       │
+│  ┌─────────────────────────────┐    ┌─────────────────┐ │
+│  │   ROS Publisher             │───▶│ /basketball_player│
+│  │   geometry_msgs/Point       │    │ topic            │ │
+│  └─────────────────────────────┘    └─────────────────┘ │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
 
 ## TODO
 
-- [ ] Envoi des données sur un topic ROS
-- [ ] Contrôle des servomoteurs
-- [ ] Contrôle des moteurs
+- [x] Envoi des données sur un topic ROS 2
+- [ ] Entrainer le modele avec des nouvelles données pour pouvoir identifier une balle floue en dribble ou dans les mains du joueur
+- [ ] Réussir à estimer la distance du joueur
+- [ ] Noeud subscriber pour les servomoteurs
+- [ ] Noeud subscriber pour les moteurs de déplacement
+- [ ] Lancement via launch file ROS 2
 
 ## Benchmark
 
