@@ -1,6 +1,6 @@
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/point.hpp"
-#include "basketball_detection/Config.hpp"
+#include "Config.hpp"
 
 
 
@@ -46,11 +46,11 @@ private:
         // TODO: Implémenter la logique de contrôle du robot
         // - Calcul de l'angle pour les servomoteurs
         // - Calcul de la vitesse/direction pour les moteurs
-        double target = msg->x / framewidth;  // Normaliser la position x entre 0 et 1
-        if target < 0.4 {
+        double target = x / frameWidth;  // Normaliser la position x entre 0 et 1
+        if (target < 0.4) {
             RCLCPP_INFO(this->get_logger(), "Turn Left");
             //TODO : Servo / Moteur gauche
-        } else if target > 0.6 {
+        } else if (target > 0.6) {
             RCLCPP_INFO(this->get_logger(), "Turn Right");
             //TODO : Servo / Moteur droite
         }

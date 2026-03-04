@@ -20,7 +20,11 @@ find_package(geometry_msgs REQUIRED)
 # =====================
 # Subscriber node
 # =====================
-add_executable(subscriber_node src/subscriber_node.cpp)
+add_executable(subscriber_node src/subscriber_node.cpp src/Config.cpp)
+
+target_include_directories(subscriber_node PRIVATE
+  include
+)
 
 ament_target_dependencies(subscriber_node
   rclcpp

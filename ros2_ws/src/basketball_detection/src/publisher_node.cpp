@@ -11,7 +11,7 @@ int main(int argc, char* argv[])
 
     auto node = rclcpp::Node::make_shared("basketball_publisher");
     node->declare_parameter<std::string>("config_path", "/workspace/ball_detection/config/config.ini");
-    auto publisher = node->create_publisher<geometry_msgs::msg::Point>("basketball_player", 10);
+    auto publisher = node->create_publisher<geometry_msgs::msg::Point>("basketball_player", 1);
 
     try {
         std::string config_path = node->get_parameter("config_path").as_string();
