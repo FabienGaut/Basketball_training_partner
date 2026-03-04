@@ -9,19 +9,14 @@ ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /workspace
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     # Build tools
     build-essential \
     cmake \
     git \
     wget \
-    curl \
     # OpenCV development
     libopencv-dev \
-    # Additional useful tools
-    vim \
-    nano \
-    gdb \
     # Video4Linux for webcam support
     v4l-utils \
     libv4l-dev \
@@ -36,9 +31,7 @@ RUN apt-get update && apt-get install -y \
     ros-jazzy-sensor-msgs \
     ros-jazzy-std-msgs \
     ros-jazzy-geometry-msgs \
-    # Python tools (for model conversion if needed)
-    python3-pip \
-    python3-venv \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Download and install ONNX Runtime
