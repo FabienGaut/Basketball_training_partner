@@ -1,0 +1,27 @@
+# Git metadata
+.git
+.gitignore
+
+# Model files (large – mounted as volume at runtime)
+models/
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# C++ build artifacts
+build/
+cmake-build-*/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
