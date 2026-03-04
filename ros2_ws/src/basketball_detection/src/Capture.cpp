@@ -6,7 +6,8 @@
 #include <chrono>
 
 void capture(const Config& config, YOLODetector& personDetector, YOLODetector& basketDetector, PlayerCallback onPlayerDetected) {
-    cv::VideoCapture cap(config.webcamIndex);
+    cv::VideoCapture cap(config.webcamIndex, cv::CAP_V4L2);
+    cap.set(cv::CAP_PROP_BUFFERSIZE, 1);
 
     if (!cap.isOpened()) {
         throw std::runtime_error("Webcam non accessible");
