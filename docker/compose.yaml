@@ -8,18 +8,19 @@ services:
     # Mount project as shared volume for development
     volumes:
       - ..:/workspace/ball_detection
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ${XAUTHORITY:-~/.Xauthority}:/root/.Xauthority:ro
 
     # Share host's video devices for webcam access
     devices:
       - /dev/video0:/dev/video0
       - /dev/video1:/dev/video1
-      - /dev/video2:/dev/video2
-      - /dev/video3:/dev/video3
 
     # Environment variables
     environment:
       - DISPLAY=${DISPLAY}
       - QT_X11_NO_MITSHM=1
+      - XAUTHORITY=/root/.Xauthority
       # ROS domain ID (change if needed)
       - ROS_DOMAIN_ID=0
 
