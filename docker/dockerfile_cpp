@@ -9,6 +9,7 @@ WORKDIR /workspace
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
+    git \
     # OpenCV (headless would be smaller but we need highgui for display)
     libopencv-dev \
     # Video4Linux for webcam
@@ -21,6 +22,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # ROS 2 packages actually used by the project
     ros-jazzy-geometry-msgs \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install wiringPi from source (not available in standard apt repos)
+RUN git clone --depth=1 --branch 3.10 https://github.com/WiringPi/WiringPi.git /tmp/WiringPi && \
+    cd /tmp/WiringPi && \
+    ./build debian && \
+    dpkg -i debian-template/wiringpi_*.deb && \
+    rm -rf /tmp/WiringPi
 
 # Download ONNX Runtime (architecture-aware)
 ARG TARGETARCH
