@@ -1,5 +1,9 @@
 <p align="center">
-  <img src="ton_robot.png" width="50" style="image-rendering: pixelated;">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo.png">
+    <source media="(prefers-color-scheme: light)" srcset="assets/logo.png">
+    <img src="assets/logo.png" width="150" alt="Robot Defender Logo" style="image-rendering: pixelated;">
+  </picture>
 </p>
 
 # Basketball Player Detection - Robot Defender
