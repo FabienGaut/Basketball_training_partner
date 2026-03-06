@@ -51,7 +51,6 @@ private:
     {
         double x = msg->x;
 
-        // Map x in [0, frame_width_] to PWM in [SERVO_MIN_PWM, SERVO_MAX_PWM]
         double ratio = std::clamp(x / static_cast<double>(frame_width_), 0.0, 1.0);
         int pwm_value = static_cast<int>(SERVO_MIN_PWM + ratio * (SERVO_MAX_PWM - SERVO_MIN_PWM));
 
