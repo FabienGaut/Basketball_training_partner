@@ -2,7 +2,7 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/logo.png">
     <source media="(prefers-color-scheme: light)" srcset="assets/logo.png">
-    <img src="assets/logo.png" width="150" alt="Robot Defender Logo" style="image-rendering: pixelated;">
+    <img src="assets/logo.png" width="250" alt="Robot Defender Logo" style="image-rendering: pixelated;">
   </picture>
 </p>
 
