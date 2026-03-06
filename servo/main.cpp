@@ -3,12 +3,12 @@
 #include <unistd.h>
 
 int main() {
-    wiringPiSetupGpio(); // numérotation GPIO BCM
-    int servoPin = 18; // GPIO connecté au servo
+    wiringPiSetupGpio(); // BCM GPIO numbering
+    int servoPin = 18;
 
-    softPwmCreate(servoPin, 0, 200); // min 0 max 200 (approximatif)
+    softPwmCreate(servoPin, 0, 200);
 
-    for (int i = 5; i <= 25; i++) { // balayage du servo
+    for (int i = 5; i <= 25; i++) { // servo sweep
         softPwmWrite(servoPin, i);
         usleep(20000);
     }

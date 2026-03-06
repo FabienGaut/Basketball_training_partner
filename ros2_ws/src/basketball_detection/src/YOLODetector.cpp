@@ -6,23 +6,15 @@
 YOLODetector::YOLODetector(const std::string& modelPath, float confThreshold)
     : confThreshold_(confThreshold), env_(ORT_LOGGING_LEVEL_WARNING, "YOLODetector") {
 
-    Ort::SessionOptions sessionOptions; //  objet de configuration pour la session d'inférence ONNX Runtime. 
-    sessionOptions.SetIntraOpNumThreads(4); // nombre de threads a utiliser, a adapter selon le CPU
+    Ort::SessionOptions sessionOptions;
+    sessionOptions.SetIntraOpNumThreads(4);
     sessionOptions.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
-    /*
-    Avec ORT_ENABLE_ALL, ONNX Runtime va :
-
-        Fusionner des couches consécutives
-        Éliminer les calculs redondants
-        Optimiser la disposition mémoire
-        Appliquer des optimisations spécifiques au CPU/GPU détecté
-*/
 
     session_ = std::make_unique<Ort::Session>(env_, modelPath.c_str(), sessionOptions);
 
     // Get input info
-    Ort::AllocatorWithDefaultOptions allocator; // Crée un allocateur mémoire par défaut
-    auto inputName = session_->GetInputNameAllocated(0, allocator);// Récupère le nom de l'entrée à l'index 0 (la première entrée du modèle).
+    Ort::AllocatorWithDefaultOptions allocator;
+    auto inputName = session_->GetInputNameAllocated(0, allocator);
     inputName_ = inputName.get();
 
     auto inputShape = session_->GetInputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
@@ -55,19 +47,12 @@ std::vector<Detection> YOLODetector::detect(const cv::Mat& frame, const std::vec
     std::memcpy(inputTensor.data() + channelSize, channels[1].data, channelSize * sizeof(float));
     std::memcpy(inputTensor.data() + 2 * channelSize, channels[2].data, channelSize * sizeof(float));
 
-    // Create input tensor (tableau multidimensionnel de nombres)
+    // Create input tensor
     std::vector<int64_t> inputShape = {1, 3, inputHeight_, inputWidth_};
     Ort::MemoryInfo memInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
     Ort::Value inputOrt = Ort::Value::CreateTensor<float>(
         memInfo, inputTensor.data(), inputTensor.size(), inputShape.data(), inputShape.size());
-/*
-tensor 4D de shape [1, 3, 640, 640] :
-    1         →  Batch size (1 seule image)
-       3         →  Canaux (R, G, B)
-       640       →  Hauteur
-       640       →  Largeur
-*/
-    // Run inference : l'inference correspond a l'execution du modele sur les donnees d'entree pour obtenir les resultats de sortie.
+    // Run inference
     const char* inputNames[] = {inputName_.c_str()};
     const char* outputNames[] = {outputName_.c_str()};
 
@@ -103,7 +88,7 @@ tensor 4D de shape [1, 3, 640, 640] :
                 d.x1 = static_cast<int>(det[0] * xFactor);
                 d.y1 = static_cast<int>(det[1] * yFactor);
                 d.x2 = static_cast<int>(det[2] * xFactor);
-                d.y2 = static_cast<int>(det[3] * yFactor); //coordonnées bounding box
+                d.y2 = static_cast<int>(det[3] * yFactor);
                 d.confidence = conf;
                 d.classId = classId;
                 detections.push_back(d);
@@ -150,7 +135,7 @@ tensor 4D de shape [1, 3, 640, 640] :
                 classIds.push_back(maxClassId);
             }
 
-            // Apply NMS : NMS (Non-Maximum Suppression) est un algorithme qui élimine les détections redondantes quand plusieurs bounding boxes détectent le même objet.
+            // Apply NMS
             std::vector<int> indices;
             cv::dnn::NMSBoxes(boxes, confidences, confThreshold_, 0.45f, indices);
 

@@ -6,7 +6,7 @@
 
 int main() {
     if (gpioInitialise() < 0) {
-        std::cerr << "Erreur d'initialisation pigpio\n";
+        std::cerr << "Failed to initialize pigpio\n";
         return 1;
     }
 

@@ -8,71 +8,71 @@
 
 # Basketball Player Detection - Robot Defender
 
-Systeme de vision par ordinateur pour robot defenseur de basketball. Le projet detecte en temps reel les joueurs tenant un ballon et transmet les coordonnees du centre de leur bounding box via ROS 2 pour permettre au robot de se positionner comme un defenseur face au porteur du ballon.
+Computer vision system for a basketball defender robot. The project detects in real time players holding a ball and transmits the bounding box center coordinates via ROS 2, allowing the robot to position itself as a defender facing the ball carrier.
 
-## Objectif
+## Goal
 
-Le robot doit :
-1. **Detecter** quand une personne tient un ballon de basket (classification "basketball player")
-2. **Recuperer** les coordonnees du centre de la bounding box du joueur
-3. **Transmettre** ces coordonnees via ROS 2 aux composants du robot
-4. **Orienter** le servo moteur vers le joueur detecte
-5. **Se deplacer** pour rester face au porteur du ballon (en cours)
+The robot must:
+1. **Detect** when a person is holding a basketball (classified as "basketball player")
+2. **Retrieve** the bounding box center coordinates of the player
+3. **Transmit** these coordinates via ROS 2 to the robot's components
+4. **Orient** the servo motor toward the detected player
+5. **Move** to stay facing the ball carrier (in progress)
 
-## Principe de detection
+## Detection Principle
 
-Le systeme utilise deux modeles YOLO en parallele :
+The system uses two YOLO models in parallel:
 
-| Modele | Fichier | Role |
-|--------|---------|------|
-| **COCO** | `yolo26n` | Detection des personnes (classe 0) |
-| **Custom** | `ballDetection` | Detection des ballons de basket |
+| Model | File | Role |
+|-------|------|------|
+| **COCO** | `yolo26n` | Person detection (class 0) |
+| **Custom** | `ballDetection` | Basketball detection |
 
-**Regle de classification** : Une personne est identifiee comme **"basketball player"** si le centre d'un ballon detecte se trouve a l'interieur de sa bounding box.
+**Classification rule**: A person is identified as a **"basketball player"** if the center of a detected ball falls within their bounding box.
 
-## Architecture ROS 2
+## ROS 2 Architecture
 
 ```
 [ publisher_node ]              [ servo_node ]           [ subscriber_node ]
   basketball_detection            controller               controller
-  - Webcam                        - Abonne /basketball_player
-  - YOLO detection                - wiringPi softPwm       - Placeholder moteurs
-  - Publie /basketball_player     - GPIO 18 -> Servo       - Logique direction
+  - Webcam                        - Subscribes /basketball_player
+  - YOLO detection                - wiringPi softPwm       - Motor placeholder
+  - Publishes /basketball_player  - GPIO 18 -> Servo       - Direction logic
          |                              ^                        ^
          +------------------------------+------------------------+
                     geometry_msgs/Point (x, y)
 ```
 
-| Noeud | Package | Role |
-|-------|---------|------|
-| `publisher_node` | `basketball_detection` | Detection YOLO + publication coordonnees |
-| `servo_node` | `controller` | Controle servo moteur sur GPIO 18 |
-| `subscriber_node` | `controller` | Controle moteurs de deplacement (a implementer) |
+| Node | Package | Role |
+|------|---------|------|
+| `publisher_node` | `basketball_detection` | YOLO detection + coordinate publishing |
+| `servo_node` | `controller` | Servo motor control on GPIO 18 |
+| `subscriber_node` | `controller` | Motor control (to be implemented) |
 
 | Topic | Type | Description |
 |-------|------|-------------|
-| `/basketball_player` | `geometry_msgs/msg/Point` | Coordonnees (x, y) du centre de la bounding box du joueur |
+| `/basketball_player` | `geometry_msgs/msg/Point` | (x, y) coordinates of the player's bounding box center |
 
-## Versions disponibles
+## Available Versions
 
-| Version | Performance | Format modeles | Cas d'usage |
-|---------|-------------|----------------|-------------|
-| **ROS 2** | 5-10 FPS | ONNX | Integration robot (recommandee) |
-| **C++ standalone** | 5-10.4 FPS | ONNX | Tests sans ROS |
-| **Python** | 4-9.4 FPS | PyTorch | Prototypage |
+| Version | Performance | Model Format | Use Case |
+|---------|-------------|--------------|----------|
+| **ROS 2** | 5-10 FPS | ONNX | Robot integration (recommended) |
+| **C++ standalone** | 5-10.4 FPS | ONNX | Testing without ROS |
+| **Python** | 4-9.4 FPS | PyTorch | Prototyping |
 
-## Structure du projet
+## Project Structure
 
 ```
 ball_detection/
 ├── config/
-│   ├── config.ini              # Configuration (chemins Docker)
-│   └── config_cpp.ini          # Configuration (chemins locaux)
-├── cpp/                        # Version C++ standalone
+│   ├── config.ini              # Configuration (Docker paths)
+│   └── config_cpp.ini          # Configuration (local paths)
+├── cpp/                        # C++ standalone version
 │   └── build/
-├── ros2_ws/                    # Workspace ROS 2
+├── ros2_ws/                    # ROS 2 workspace
 │   └── src/
-│       ├── basketball_detection/   # Detection YOLO (publisher)
+│       ├── basketball_detection/   # YOLO detection (publisher)
 │       │   ├── CMakeLists.txt
 │       │   ├── package.xml
 │       │   ├── include/basketball_detection/
@@ -87,31 +87,31 @@ ball_detection/
 │       │       ├── YOLODetector.cpp
 │       │       ├── Capture.cpp
 │       │       └── Utils.cpp
-│       └── controller/             # Controle robot (subscribers)
+│       └── controller/             # Robot control (subscribers)
 │           ├── CMakeLists.txt
 │           ├── package.xml
 │           ├── include/
 │           │   └── Config.hpp
 │           └── src/
-│               ├── servo_node.cpp      # Controle servo GPIO 18
-│               ├── subscriber_node.cpp # Controle moteurs (TODO)
+│               ├── servo_node.cpp      # Servo control GPIO 18
+│               ├── subscriber_node.cpp # Motor control (TODO)
 │               └── Config.cpp
-├── servo/                      # Tests servo standalone
-│   ├── main.cpp                # Test wiringPi
-│   ├── main.py                 # Test gpiozero
+├── servo/                      # Standalone servo tests
+│   ├── main.cpp                # wiringPi test
+│   ├── main.py                 # gpiozero test
 │   └── src/
-│       └── main.cpp            # Test pigpio
-├── python/                     # Version Python
+│       └── main.cpp            # pigpio test
+├── python/                     # Python version
 │   ├── detect.py
 │   └── requirements.txt
-├── models/                     # Modeles YOLO (.pt et .onnx)
+├── models/                     # YOLO models (.pt and .onnx)
 ├── docker/
 │   ├── dockerfile_cpp
 │   ├── dockerfile_python
 │   └── compose.yaml
 ├── utils/
 │   └── export_models_to_onnx.py
-├── launch_ros.sh               # Script de lancement Docker
+├── launch_ros.sh               # Docker launch script
 ├── tests/
 ├── .gitignore
 └── README.md
@@ -119,43 +119,43 @@ ball_detection/
 
 ---
 
-## Lancement rapide (Docker + ROS 2)
+## Quick Start (Docker + ROS 2)
 
-C'est la methode recommandee pour faire tourner le systeme complet.
+This is the recommended method to run the full system.
 
-### Prerequis
+### Prerequisites
 
 - Docker & Docker Compose
 - Webcam
-- Raspberry Pi ou machine avec GPIO (pour le servo)
+- Raspberry Pi or machine with GPIO (for the servo)
 
-### Lancement automatique
+### Automatic Launch
 
 ```bash
 ./launch_ros.sh
 ```
 
-Ce script :
-1. Demarre le conteneur Docker (`ball_detection_ros`) en mode privilegie
-2. Compile les packages `basketball_detection` et `controller` avec colcon
-3. Lance `publisher_node` (detection + publication sur `/basketball_player`)
-4. Lance `servo_node` (abonne a `/basketball_player`, controle le servo sur GPIO 18)
+This script:
+1. Starts the Docker container (`ball_detection_ros`) in privileged mode
+2. Builds the `basketball_detection` and `controller` packages with colcon
+3. Launches `publisher_node` (detection + publishing on `/basketball_player`)
+4. Launches `servo_node` (subscribes to `/basketball_player`, controls the servo on GPIO 18)
 
-Appuyez sur **Ctrl+C** pour arreter les deux noeuds.
+Press **Ctrl+C** to stop both nodes.
 
-### Lancement manuel (etape par etape)
+### Manual Launch (step by step)
 
-**1. Demarrer le conteneur**
+**1. Start the container**
 ```bash
 docker compose -f docker/compose.yaml up -d
 ```
 
-**2. Entrer dans le conteneur**
+**2. Enter the container**
 ```bash
 docker exec -it ball_detection_ros bash
 ```
 
-**3. Compiler le workspace**
+**3. Build the workspace**
 ```bash
 source /opt/ros/humble/setup.bash
 cd /workspace/ball_detection/ros2_ws
@@ -163,13 +163,13 @@ colcon build --packages-select basketball_detection controller
 source install/setup.bash
 ```
 
-**4. Lancer le noeud de detection** (terminal 1)
+**4. Launch the detection node** (terminal 1)
 ```bash
 ros2 run basketball_detection publisher_node \
     --ros-args -p config_path:=/workspace/ball_detection/config/config.ini
 ```
 
-**5. Lancer le noeud servo** (terminal 2)
+**5. Launch the servo node** (terminal 2)
 ```bash
 docker exec -it ball_detection_ros bash
 source /opt/ros/humble/setup.bash
@@ -178,7 +178,7 @@ ros2 run controller servo_node \
     --ros-args -p config_path:=/workspace/ball_detection/config/config.ini
 ```
 
-### Ecouter le topic
+### Listen to the topic
 
 ```bash
 ros2 topic echo /basketball_player
@@ -186,16 +186,16 @@ ros2 topic echo /basketball_player
 
 ---
 
-## Installation - Version C++ standalone
+## Installation - C++ Standalone Version
 
-### Prerequis
+### Prerequisites
 
 - CMake 3.10+
-- Compilateur C++17
+- C++17 compiler
 - OpenCV 4.x
-- ONNX Runtime (inclus dans `deps/`)
+- ONNX Runtime (included in `deps/`)
 
-### Compilation et execution
+### Build and Run
 
 ```bash
 cd cpp
@@ -207,14 +207,14 @@ make
 
 ---
 
-## Installation - Version Python
+## Installation - Python Version
 
-### Prerequis
+### Prerequisites
 
 - Python 3.8+
 - Webcam
 
-### Installation et execution
+### Install and Run
 
 ```bash
 pip install -r python/requirements.txt
@@ -225,7 +225,7 @@ python python/detect.py
 
 ## Configuration
 
-Fichier : `config/config.ini`
+File: `config/config.ini`
 
 ```ini
 [default]
@@ -242,56 +242,56 @@ draw_balls = True
 draw_players = True
 ```
 
-| Parametre | Description | Defaut |
-|-----------|-------------|--------|
-| `webcam_index` | Index de la webcam | `0` |
-| `confidence_threshold` | Seuil de confiance YOLO | `0.5` |
-| `FRAME_WIDTH` | Largeur de la frame | `640` |
-| `FRAME_HEIGHT` | Hauteur de la frame | `480` |
-| `draw_balls` | Afficher les ballons | `True` |
-| `draw_players` | Afficher les joueurs | `True` |
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `webcam_index` | Webcam index | `0` |
+| `confidence_threshold` | YOLO confidence threshold | `0.5` |
+| `FRAME_WIDTH` | Frame width | `640` |
+| `FRAME_HEIGHT` | Frame height | `480` |
+| `draw_balls` | Display balls | `True` |
+| `draw_players` | Display players | `True` |
 
-## Conversion des modeles
+## Model Conversion
 
-Pour convertir les modeles PyTorch vers ONNX (requis pour C++ et ROS 2) :
+To convert PyTorch models to ONNX (required for C++ and ROS 2):
 
 ```bash
 python utils/export_models_to_onnx.py
 ```
 
-## Affichage visuel
+## Visual Display
 
-| Couleur | Signification |
-|---------|---------------|
-| **Bleu** | Personne sans ballon |
-| **Vert** | Basketball player (personne avec ballon) |
-| **Orange** | Ballon de basket detecte |
+| Color | Meaning |
+|-------|---------|
+| **Blue** | Person without ball |
+| **Green** | Basketball player (person with ball) |
+| **Orange** | Detected basketball |
 
-## Servo moteur
+## Servo Motor
 
-Le dossier `servo/` contient des scripts de test standalone pour le servo moteur (GPIO 18) :
+The `servo/` directory contains standalone test scripts for the servo motor (GPIO 18):
 
-| Fichier | Librairie | Usage |
-|---------|-----------|-------|
-| `servo/main.cpp` | wiringPi (softPwm) | Balayage servo |
-| `servo/src/main.cpp` | pigpio | Positions 0/90/180 degres |
-| `servo/main.py` | gpiozero | Test min/mid/max |
+| File | Library | Usage |
+|------|---------|-------|
+| `servo/main.cpp` | wiringPi (softPwm) | Servo sweep |
+| `servo/src/main.cpp` | pigpio | 0/90/180 degree positions |
+| `servo/main.py` | gpiozero | Min/mid/max test |
 
-Le controle servo en production se fait via le noeud ROS 2 `servo_node` qui mappe la position X du joueur detecte sur l'angle du servo (0-180 degres).
+In production, servo control is handled by the ROS 2 `servo_node` which maps the detected player's X position to the servo angle (0-180 degrees).
 
 ## TODO
 
-- [x] Envoi des donnees sur un topic ROS 2
-- [x] Noeud subscriber servo moteur (`servo_node`)
-- [ ] Entrainer le modele avec des nouvelles donnees (balle floue en dribble, balle dans les mains)
-- [ ] Estimer la distance du joueur
-- [ ] Noeud subscriber pour les moteurs de deplacement
-- [ ] Lancement via launch file ROS 2
+- [x] Publish data on a ROS 2 topic
+- [x] Servo motor subscriber node (`servo_node`)
+- [ ] Train the model with new data (blurry ball while dribbling, ball in hands)
+- [ ] Estimate player distance
+- [ ] Motor control subscriber node
+- [ ] ROS 2 launch file
 
-## Modele custom
+## Custom Model
 
-Le modele de detection de ballon a ete entraine via la plateforme Ultralytics.
+The ball detection model was trained using the Ultralytics platform.
 
-## Licence
+## License
 
 MIT
