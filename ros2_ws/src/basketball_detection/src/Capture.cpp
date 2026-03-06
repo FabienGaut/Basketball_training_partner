@@ -108,7 +108,7 @@ void capture(const Config& config, YOLODetector& personDetector, YOLODetector& b
         cv::putText(frame, fpsText.str(), cv::Point(10, 30),
                    cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 255, 0), 2);
 
-        cv::imshow("Basketball Detection (C++)", frame);
+        //cv::imshow("Basketball Detection (C++)", frame);
 
         if (cv::waitKey(1) == 'q') break;
     }
