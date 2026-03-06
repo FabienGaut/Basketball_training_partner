@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """
-Export YOLO models (.pt) to ONNX format (.onnx)
-required for the C++ version of the detector.
-
+Export YOLO models (.pt) to ONNX format (.onnx).
 Usage: python export_models_to_onnx.py
 """
 
@@ -11,7 +9,6 @@ from configparser import ConfigParser
 import os
 
 def export_model(pt_path: str) -> str:
-    """Export a YOLO .pt model to ONNX and return the ONNX file path."""
     if not os.path.exists(pt_path):
         print(f"Error: Model not found: {pt_path}")
         return None
@@ -19,7 +16,6 @@ def export_model(pt_path: str) -> str:
     print(f"Exporting {pt_path} to ONNX...")
     model = YOLO(pt_path)
 
-    # Export to ONNX with optimal parameters for OpenCV DNN
     onnx_path = model.export(
         format='onnx',
         imgsz=640,

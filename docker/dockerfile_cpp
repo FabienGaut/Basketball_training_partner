@@ -22,16 +22,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-jazzy-geometry-msgs \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Download ONNX Runtime
+# Download ONNX Runtime (architecture-aware)
+ARG TARGETARCH
 RUN mkdir -p /opt/onnxruntime && \
     apt-get update && apt-get install -y --no-install-recommends wget ca-certificates && \
-    wget -q -O /tmp/ort.tgz https://github.com/microsoft/onnxruntime/releases/download/v1.17.0/onnxruntime-linux-x64-1.17.0.tgz && \
+    ORT_ARCH=$(if [ "$TARGETARCH" = "arm64" ]; then echo "aarch64"; else echo "x64"; fi) && \
+    wget -q -O /tmp/ort.tgz https://github.com/microsoft/onnxruntime/releases/download/v1.17.0/onnxruntime-linux-${ORT_ARCH}-1.17.0.tgz && \
     tar -xzf /tmp/ort.tgz -C /opt/onnxruntime && \
+    ln -s /opt/onnxruntime/onnxruntime-linux-${ORT_ARCH}-1.17.0 /opt/onnxruntime/current && \
     rm /tmp/ort.tgz && \
     apt-get purge -y wget && apt-get autoremove -y && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-ENV ONNXRUNTIME_ROOT=/opt/onnxruntime/onnxruntime-linux-x64-1.17.0
+ENV ONNXRUNTIME_ROOT=/opt/onnxruntime/current
 ENV LD_LIBRARY_PATH=${ONNXRUNTIME_ROOT}/lib:${LD_LIBRARY_PATH}
 
 # Source ROS setup in bashrc
