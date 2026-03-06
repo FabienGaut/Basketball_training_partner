@@ -13,6 +13,7 @@ services:
     # Camera devices - pass through only what exists
     devices:
       - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1
 
     # Minimal permissions for camera access (no privileged mode)
     device_cgroup_rules:
