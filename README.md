@@ -326,6 +326,79 @@ ros2 run basketball_detection publisher_node --ros-args -p config_path:=/chemin/
 ros2 topic echo /basketball_player
 ```
 
+---
+
+## Lancement via Docker
+
+### Prérequis
+
+- Docker & Docker Compose installés
+- Le groupe `docker` configuré pour l'utilisateur courant (ou lancer avec `sudo`)
+- Le conteneur est lancé en mode `privileged` pour accéder à la webcam et aux GPIO
+
+### Lancement automatique (script)
+
+Le script `launch_ros.sh` démarre le conteneur, compile le workspace et lance les deux noeuds en parallèle :
+
+```bash
+./launch_ros.sh
+```
+
+Ce script :
+1. Démarre le conteneur Docker si nécessaire (`ball_detection_ros`)
+2. Compile les packages `basketball_detection` et `controller` avec `colcon`
+3. Lance `publisher_node` (détection + publication sur `/basketball_player`)
+4. Lance `servo_node` (abonné à `/basketball_player`, contrôle le servo sur GPIO 18)
+
+Appuyez sur **Ctrl+C** pour arrêter les deux noeuds proprement.
+
+### Lancement manuel (étape par étape)
+
+**1. Démarrer le conteneur**
+```bash
+docker compose -f docker/compose.yaml up -d
+```
+
+**2. Entrer dans le conteneur**
+```bash
+docker exec -it ball_detection_ros bash
+```
+
+**3. Compiler le workspace (dans le conteneur)**
+```bash
+source /opt/ros/humble/setup.bash
+cd /workspace/ball_detection/ros2_ws
+colcon build --packages-select basketball_detection controller
+source install/setup.bash
+```
+
+**4. Lancer le noeud de détection** (terminal 1)
+```bash
+ros2 run basketball_detection publisher_node \
+    --ros-args -p config_path:=/workspace/ball_detection/config/config.ini
+```
+
+**5. Lancer le noeud servo** (terminal 2 — `docker exec -it ball_detection_ros bash`)
+```bash
+source /opt/ros/humble/setup.bash
+source /workspace/ball_detection/ros2_ws/install/setup.bash
+ros2 run controller servo_node \
+    --ros-args -p config_path:=/workspace/ball_detection/config/config.ini
+```
+
+### Architecture ROS 2 complète
+
+```
+[ publisher_node ]          [ servo_node ]
+  basketball_detection         controller
+  - Webcam                     - Abonné /basketball_player
+  - YOLO detection             - wiringPi softPwm
+  - Publie /basketball_player  - GPIO 18 -> Servo
+         │                            ▲
+         └────────────────────────────┘
+              geometry_msgs/Point (x, y)
+```
+
 ### Architecture du noeud ROS 2
 
 ```
@@ -363,7 +436,7 @@ ros2 topic echo /basketball_player
 - [x] Envoi des données sur un topic ROS 2
 - [ ] Entrainer le modele avec des nouvelles données pour pouvoir identifier une balle floue en dribble ou dans les mains du joueur
 - [ ] Réussir à estimer la distance du joueur
-- [ ] Noeud subscriber pour les servomoteurs
+- [x] Noeud subscriber pour les servomoteurs
 - [ ] Noeud subscriber pour les moteurs de déplacement
 - [ ] Lancement via launch file ROS 2
 

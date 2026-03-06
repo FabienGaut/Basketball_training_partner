@@ -31,8 +31,24 @@ ament_target_dependencies(subscriber_node
   geometry_msgs
 )
 
+add_executable(servo_node src/servo_node.cpp src/Config.cpp)
+
+target_include_directories(servo_node PRIVATE
+  include
+)
+
+ament_target_dependencies(servo_node
+  rclcpp
+  geometry_msgs
+)
+
+target_link_libraries(servo_node
+  wiringPi
+)
+
 install(TARGETS
   subscriber_node
+  servo_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
