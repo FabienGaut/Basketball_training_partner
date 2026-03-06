@@ -18,7 +18,7 @@ fi
 # ─── Build workspace ──────────────────────────────────────────────────────────
 echo "[INFO] Building ROS 2 workspace..."
 docker exec "$CONTAINER" bash -lc "
-    source /opt/ros/humble/setup.bash &&
+    source /opt/ros/jazzy/setup.bash &&
     cd /workspace/ball_detection/ros2_ws &&
     colcon build --packages-select basketball_detection controller 2>&1
 "
@@ -26,7 +26,7 @@ docker exec "$CONTAINER" bash -lc "
 # ─── Launch nodes ─────────────────────────────────────────────────────────────
 echo "[INFO] Launching publisher_node (ball detection)..."
 docker exec -d "$CONTAINER" bash -lc "
-    source /opt/ros/humble/setup.bash &&
+    source /opt/ros/jazzy/setup.bash &&
     source /workspace/ball_detection/ros2_ws/install/setup.bash &&
     ros2 run basketball_detection publisher_node \
         --ros-args -p config_path:=${CONFIG_PATH}
@@ -34,7 +34,7 @@ docker exec -d "$CONTAINER" bash -lc "
 
 echo "[INFO] Launching servo_node (servo controller)..."
 docker exec -d "$CONTAINER" bash -lc "
-    source /opt/ros/humble/setup.bash &&
+    source /opt/ros/jazzy/setup.bash &&
     source /workspace/ball_detection/ros2_ws/install/setup.bash &&
     ros2 run controller servo_node \
         --ros-args -p config_path:=${CONFIG_PATH}

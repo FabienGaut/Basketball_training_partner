@@ -1,96 +1,113 @@
-## 🚧 Project status: Work in progress
+<p align="center">
+  <img src="assets/logo.png" alt="Basketball Player Detection Logo" width="200">
+</p>
 
 # Basketball Player Detection - Robot Defender
 
-Système de vision par ordinateur pour robot défenseur de basketball. Le projet détecte en temps réel les joueurs tenant un ballon et transmet les coordonnées du centre de leur bounding box via ROS pour permettre au robot de se positionner comme un défenseur face au porteur du ballon.
+Systeme de vision par ordinateur pour robot defenseur de basketball. Le projet detecte en temps reel les joueurs tenant un ballon et transmet les coordonnees du centre de leur bounding box via ROS 2 pour permettre au robot de se positionner comme un defenseur face au porteur du ballon.
 
 ## Objectif
 
 Le robot doit :
-1. **Détecter** quand une personne tient un ballon de basket (classification "basketball player")
-2. **Récupérer** les coordonnées du centre de la bounding box du joueur
-3. **Transmettre** ces coordonnées via ROS aux composants du robot (servomoteurs, moteurs)
-4. **Se positionner** comme un défenseur en restant face au porteur du ballon à distance appropriée
+1. **Detecter** quand une personne tient un ballon de basket (classification "basketball player")
+2. **Recuperer** les coordonnees du centre de la bounding box du joueur
+3. **Transmettre** ces coordonnees via ROS 2 aux composants du robot
+4. **Orienter** le servo moteur vers le joueur detecte
+5. **Se deplacer** pour rester face au porteur du ballon (en cours)
 
-## Principe de détection
+## Principe de detection
 
-Le système utilise deux modèles YOLO en parallèle :
+Le systeme utilise deux modeles YOLO en parallele :
 
-| Modèle | Fichier | Rôle |
+| Modele | Fichier | Role |
 |--------|---------|------|
-| **COCO** | `yolo26n` | Détection des personnes (classe 0) |
-| **Custom** | `ballDetection` | Détection des ballons de basket |
+| **COCO** | `yolo26n` | Detection des personnes (classe 0) |
+| **Custom** | `ballDetection` | Detection des ballons de basket |
 
-**Règle de classification** : Une personne est identifiée comme **"basketball player"** si le centre d'un ballon détecté se trouve à l'intérieur de sa bounding box.
+**Regle de classification** : Une personne est identifiee comme **"basketball player"** si le centre d'un ballon detecte se trouve a l'interieur de sa bounding box.
+
+## Architecture ROS 2
+
+```
+[ publisher_node ]              [ servo_node ]           [ subscriber_node ]
+  basketball_detection            controller               controller
+  - Webcam                        - Abonne /basketball_player
+  - YOLO detection                - wiringPi softPwm       - Placeholder moteurs
+  - Publie /basketball_player     - GPIO 18 -> Servo       - Logique direction
+         |                              ^                        ^
+         +------------------------------+------------------------+
+                    geometry_msgs/Point (x, y)
+```
+
+| Noeud | Package | Role |
+|-------|---------|------|
+| `publisher_node` | `basketball_detection` | Detection YOLO + publication coordonnees |
+| `servo_node` | `controller` | Controle servo moteur sur GPIO 18 |
+| `subscriber_node` | `controller` | Controle moteurs de deplacement (a implementer) |
+
+| Topic | Type | Description |
+|-------|------|-------------|
+| `/basketball_player` | `geometry_msgs/msg/Point` | Coordonnees (x, y) du centre de la bounding box du joueur |
 
 ## Versions disponibles
 
-Le projet propose trois implémentations :
-
-| Version | Performance | Format modèles | Cas d'usage |
+| Version | Performance | Format modeles | Cas d'usage |
 |---------|-------------|----------------|-------------|
-| **ROS 2** | 5-10 FPS | ONNX | Intégration robot (recommandée) |
+| **ROS 2** | 5-10 FPS | ONNX | Integration robot (recommandee) |
 | **C++ standalone** | 5-10.4 FPS | ONNX | Tests sans ROS |
 | **Python** | 4-9.4 FPS | PyTorch | Prototypage |
-
-La version ROS 2 est recommandée pour l'intégration avec le robot défenseur.
 
 ## Structure du projet
 
 ```
 ball_detection/
 ├── config/
-│   └── config.ini              # Configuration partagée
+│   ├── config.ini              # Configuration (chemins Docker)
+│   └── config_cpp.ini          # Configuration (chemins locaux)
 ├── cpp/                        # Version C++ standalone
-│   ├── CMakeLists.txt
-│   ├── include/
-│   │   ├── Config.hpp
-│   │   ├── YOLODetector.hpp
-│   │   ├── Capture.hpp
-│   │   ├── Detection.hpp
-│   │   └── Utils.hpp
-│   ├── src/
-│   │   ├── main.cpp
-│   │   ├── Config.cpp
-│   │   ├── YOLODetector.cpp
-│   │   ├── Capture.cpp
-│   │   └── Utils.cpp
 │   └── build/
 ├── ros2_ws/                    # Workspace ROS 2
 │   └── src/
-│       └── basketball_detection/
+│       ├── basketball_detection/   # Detection YOLO (publisher)
+│       │   ├── CMakeLists.txt
+│       │   ├── package.xml
+│       │   ├── include/basketball_detection/
+│       │   │   ├── Config.hpp
+│       │   │   ├── YOLODetector.hpp
+│       │   │   ├── Capture.hpp
+│       │   │   ├── Detection.hpp
+│       │   │   └── Utils.hpp
+│       │   └── src/
+│       │       ├── publisher_node.cpp
+│       │       ├── Config.cpp
+│       │       ├── YOLODetector.cpp
+│       │       ├── Capture.cpp
+│       │       └── Utils.cpp
+│       └── controller/             # Controle robot (subscribers)
 │           ├── CMakeLists.txt
 │           ├── package.xml
-│           ├── include/basketball_detection/
-│           │   ├── Config.hpp
-│           │   ├── YOLODetector.hpp
-│           │   ├── Capture.hpp
-│           │   ├── Detection.hpp
-│           │   └── Utils.hpp
-│           ├── src/
-│           │   ├── publisher_node.cpp  # Noeud ROS principal
-│           │   ├── Config.cpp
-│           │   ├── YOLODetector.cpp
-│           │   ├── Capture.cpp
-│           │   └── Utils.cpp
-│           └── deps/
-│               └── onnxruntime-linux-x64-1.17.0/
+│           ├── include/
+│           │   └── Config.hpp
+│           └── src/
+│               ├── servo_node.cpp      # Controle servo GPIO 18
+│               ├── subscriber_node.cpp # Controle moteurs (TODO)
+│               └── Config.cpp
+├── servo/                      # Tests servo standalone
+│   ├── main.cpp                # Test wiringPi
+│   ├── main.py                 # Test gpiozero
+│   └── src/
+│       └── main.cpp            # Test pigpio
 ├── python/                     # Version Python
 │   ├── detect.py
 │   └── requirements.txt
-├── models/
-│   ├── yolo26n.pt              # Modèle COCO (PyTorch)
-│   ├── yolo26n.onnx            # Modèle COCO (ONNX)
-│   ├── ballDetection.pt        # Modèle custom (PyTorch)
-│   └── ballDetection.onnx      # Modèle custom (ONNX)
-├── deps/
-│   └── onnxruntime-linux-x64-1.17.0/
+├── models/                     # Modeles YOLO (.pt et .onnx)
 ├── docker/
-│   ├── dockerfile_python
 │   ├── dockerfile_cpp
+│   ├── dockerfile_python
 │   └── compose.yaml
 ├── utils/
 │   └── export_models_to_onnx.py
+├── launch_ros.sh               # Script de lancement Docker
 ├── tests/
 ├── .gitignore
 └── README.md
@@ -98,80 +115,107 @@ ball_detection/
 
 ---
 
-## Installation - Version C++
+## Lancement rapide (Docker + ROS 2)
 
-### Prérequis
+C'est la methode recommandee pour faire tourner le systeme complet.
+
+### Prerequis
+
+- Docker & Docker Compose
+- Webcam
+- Raspberry Pi ou machine avec GPIO (pour le servo)
+
+### Lancement automatique
+
+```bash
+./launch_ros.sh
+```
+
+Ce script :
+1. Demarre le conteneur Docker (`ball_detection_ros`) en mode privilegie
+2. Compile les packages `basketball_detection` et `controller` avec colcon
+3. Lance `publisher_node` (detection + publication sur `/basketball_player`)
+4. Lance `servo_node` (abonne a `/basketball_player`, controle le servo sur GPIO 18)
+
+Appuyez sur **Ctrl+C** pour arreter les deux noeuds.
+
+### Lancement manuel (etape par etape)
+
+**1. Demarrer le conteneur**
+```bash
+docker compose -f docker/compose.yaml up -d
+```
+
+**2. Entrer dans le conteneur**
+```bash
+docker exec -it ball_detection_ros bash
+```
+
+**3. Compiler le workspace**
+```bash
+source /opt/ros/humble/setup.bash
+cd /workspace/ball_detection/ros2_ws
+colcon build --packages-select basketball_detection controller
+source install/setup.bash
+```
+
+**4. Lancer le noeud de detection** (terminal 1)
+```bash
+ros2 run basketball_detection publisher_node \
+    --ros-args -p config_path:=/workspace/ball_detection/config/config.ini
+```
+
+**5. Lancer le noeud servo** (terminal 2)
+```bash
+docker exec -it ball_detection_ros bash
+source /opt/ros/humble/setup.bash
+source /workspace/ball_detection/ros2_ws/install/setup.bash
+ros2 run controller servo_node \
+    --ros-args -p config_path:=/workspace/ball_detection/config/config.ini
+```
+
+### Ecouter le topic
+
+```bash
+ros2 topic echo /basketball_player
+```
+
+---
+
+## Installation - Version C++ standalone
+
+### Prerequis
 
 - CMake 3.10+
-- Compilateur C++17 (GCC ou Clang)
-- OpenCV 4.x (avec headers de développement)
-- Webcam
+- Compilateur C++17
+- OpenCV 4.x
+- ONNX Runtime (inclus dans `deps/`)
 
-### Dépendances
-
-ONNX Runtime est inclus dans le dossier `deps/`. Si besoin de le télécharger :
-
-```bash
-cd deps/
-wget https://github.com/microsoft/onnxruntime/releases/download/v1.17.0/onnxruntime-linux-x64-1.17.0.tgz
-tar -xzf onnxruntime-linux-x64-1.17.0.tgz
-rm onnxruntime-linux-x64-1.17.0.tgz
-```
-
-### Installation OpenCV (Ubuntu/Debian)
-
-```bash
-sudo apt update
-sudo apt install libopencv-dev
-```
-
-### Compilation
+### Compilation et execution
 
 ```bash
 cd cpp
-mkdir -p build
-cd build
+mkdir -p build && cd build
 cmake ..
 make
+./detectBasketBallPlayer
 ```
-
-### Exécution
-
-```bash
-./cpp/build/detectBasketBallPlayer
-```
-
-Appuyez sur `q` pour quitter.
 
 ---
 
 ## Installation - Version Python
 
-### Prérequis
+### Prerequis
 
 - Python 3.8+
 - Webcam
-- GPU CUDA (optionnel mais recommandé)
 
-### Installation des dépendances
+### Installation et execution
 
 ```bash
 pip install -r python/requirements.txt
-```
-
-Ou manuellement :
-
-```bash
-pip install opencv-python>=4.8.0 torch>=2.0.0 ultralytics>=8.0.0
-```
-
-### Exécution
-
-```bash
 python python/detect.py
 ```
-
-Appuyez sur `q` pour quitter.
 
 ---
 
@@ -182,10 +226,10 @@ Fichier : `config/config.ini`
 ```ini
 [default]
 log_level = DEBUG
-webcam_index = 2
-confidence_threshold = 0.7
-PERSON_MODEL_PATH = models/yolo26n.pt      # Python: .pt / C++: .onnx
-BASKET_MODEL_PATH = models/ballDetection.pt
+webcam_index = 0
+confidence_threshold = 0.5
+PERSON_MODEL_PATH = models/yolo26n.onnx
+BASKET_MODEL_PATH = models/ballDetection.onnx
 FRAME_WIDTH = 640
 FRAME_HEIGHT = 480
 
@@ -194,18 +238,18 @@ draw_balls = True
 draw_players = True
 ```
 
-| Paramètre | Description | Valeur par défaut |
-|-----------|-------------|-------------------|
-| `webcam_index` | Index de la webcam | `2` |
-| `confidence_threshold` | Seuil de confiance YOLO | `0.7` |
+| Parametre | Description | Defaut |
+|-----------|-------------|--------|
+| `webcam_index` | Index de la webcam | `0` |
+| `confidence_threshold` | Seuil de confiance YOLO | `0.5` |
 | `FRAME_WIDTH` | Largeur de la frame | `640` |
 | `FRAME_HEIGHT` | Hauteur de la frame | `480` |
 | `draw_balls` | Afficher les ballons | `True` |
 | `draw_players` | Afficher les joueurs | `True` |
 
-## Conversion des modèles
+## Conversion des modeles
 
-Pour convertir les modèles PyTorch vers ONNX (requis pour la version C++) :
+Pour convertir les modeles PyTorch vers ONNX (requis pour C++ et ROS 2) :
 
 ```bash
 python utils/export_models_to_onnx.py
@@ -217,241 +261,33 @@ python utils/export_models_to_onnx.py
 |---------|---------------|
 | **Bleu** | Personne sans ballon |
 | **Vert** | Basketball player (personne avec ballon) |
-| **Orange** | Ballon de basket détecté |
+| **Orange** | Ballon de basket detecte |
 
-## Architecture technique
+## Servo moteur
 
-```
-┌─────────────┐     ┌─────────────┐
-│   Webcam    │────▶│  Capture    │
-└─────────────┘     └──────┬──────┘
-                           │
-                           ▼
-              ┌────────────────────────┐
-              │   Inférence parallèle  │
-              │  ┌──────┐  ┌────────┐  │
-              │  │COCO  │  │Custom  │  │
-              │  │Model │  │Model   │  │
-              │  └──────┘  └────────┘  │
-              └────────────┬───────────┘
-                           │
-                           ▼
-              ┌────────────────────────┐
-              │ Classification:        │
-              │ Point-in-box check     │
-              └────────────┬───────────┘
-                           │
-                           ▼
-              ┌────────────────────────┐
-              │ Coordonnées centre     │
-              │ bounding box           │
-              └────────────┬───────────┘
-                           │
-                           ▼
-              ┌────────────────────────┐
-              │  ROS Publisher         │
-              │  (à implémenter)       │
-              └────────────┬───────────┘
-                           │
-                           ▼
-              ┌────────────────────────┐
-              │  Servomoteurs/Moteurs  │
-              │  Robot défenseur       │
-              └────────────────────────┘
-```
+Le dossier `servo/` contient des scripts de test standalone pour le servo moteur (GPIO 18) :
 
-## Installation - Version ROS 2
+| Fichier | Librairie | Usage |
+|---------|-----------|-------|
+| `servo/main.cpp` | wiringPi (softPwm) | Balayage servo |
+| `servo/src/main.cpp` | pigpio | Positions 0/90/180 degres |
+| `servo/main.py` | gpiozero | Test min/mid/max |
 
-La version ROS 2 permet d'intégrer la détection dans un système robotique complet.
-
-### Prérequis
-
-- ROS 2 Humble ou plus récent
-- colcon build tools
-- OpenCV 4.x
-- ONNX Runtime (inclus dans `ros2_ws/src/basketball_detection/deps/`)
-
-### Installation ROS 2 (Ubuntu 22.04)
-
-```bash
-# Installation ROS 2 Humble
-sudo apt update && sudo apt install -y locales
-sudo locale-gen en_US en_US.UTF-8
-sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
-export LANG=en_US.UTF-8
-
-sudo apt install software-properties-common
-sudo add-apt-repository universe
-sudo apt update && sudo apt install curl -y
-sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
-sudo apt update
-sudo apt install ros-humble-desktop ros-dev-tools
-```
-
-### Compilation du workspace
-
-```bash
-# Sourcer ROS 2
-source /opt/ros/humble/setup.bash
-
-# Compiler le workspace
-cd ros2_ws
-colcon build --packages-select basketball_detection
-
-# Sourcer le workspace
-source install/setup.bash
-```
-
-### Exécution du noeud
-
-```bash
-# Dans un terminal
-source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
-
-# Lancer le noeud de détection
-ros2 run basketball_detection publisher_node --ros-args -p config_path:=/chemin/vers/config/config.ini
-```
-
-### Topic publié
-
-| Topic | Type | Description |
-|-------|------|-------------|
-| `/basketball_player` | `geometry_msgs/msg/Point` | Coordonnées (x, y) du centre de la bounding box du joueur avec ballon |
-
-### Écouter le topic
-
-```bash
-ros2 topic echo /basketball_player
-```
-
----
-
-## Lancement via Docker
-
-### Prérequis
-
-- Docker & Docker Compose installés
-- Le groupe `docker` configuré pour l'utilisateur courant (ou lancer avec `sudo`)
-- Le conteneur est lancé en mode `privileged` pour accéder à la webcam et aux GPIO
-
-### Lancement automatique (script)
-
-Le script `launch_ros.sh` démarre le conteneur, compile le workspace et lance les deux noeuds en parallèle :
-
-```bash
-./launch_ros.sh
-```
-
-Ce script :
-1. Démarre le conteneur Docker si nécessaire (`ball_detection_ros`)
-2. Compile les packages `basketball_detection` et `controller` avec `colcon`
-3. Lance `publisher_node` (détection + publication sur `/basketball_player`)
-4. Lance `servo_node` (abonné à `/basketball_player`, contrôle le servo sur GPIO 18)
-
-Appuyez sur **Ctrl+C** pour arrêter les deux noeuds proprement.
-
-### Lancement manuel (étape par étape)
-
-**1. Démarrer le conteneur**
-```bash
-docker compose -f docker/compose.yaml up -d
-```
-
-**2. Entrer dans le conteneur**
-```bash
-docker exec -it ball_detection_ros bash
-```
-
-**3. Compiler le workspace (dans le conteneur)**
-```bash
-source /opt/ros/humble/setup.bash
-cd /workspace/ball_detection/ros2_ws
-colcon build --packages-select basketball_detection controller
-source install/setup.bash
-```
-
-**4. Lancer le noeud de détection** (terminal 1)
-```bash
-ros2 run basketball_detection publisher_node \
-    --ros-args -p config_path:=/workspace/ball_detection/config/config.ini
-```
-
-**5. Lancer le noeud servo** (terminal 2 — `docker exec -it ball_detection_ros bash`)
-```bash
-source /opt/ros/humble/setup.bash
-source /workspace/ball_detection/ros2_ws/install/setup.bash
-ros2 run controller servo_node \
-    --ros-args -p config_path:=/workspace/ball_detection/config/config.ini
-```
-
-### Architecture ROS 2 complète
-
-```
-[ publisher_node ]          [ servo_node ]
-  basketball_detection         controller
-  - Webcam                     - Abonné /basketball_player
-  - YOLO detection             - wiringPi softPwm
-  - Publie /basketball_player  - GPIO 18 -> Servo
-         │                            ▲
-         └────────────────────────────┘
-              geometry_msgs/Point (x, y)
-```
-
-### Architecture du noeud ROS 2
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                  publisher_node                          │
-│  ┌─────────────┐                                        │
-│  │   Webcam    │                                        │
-│  └──────┬──────┘                                        │
-│         │                                               │
-│         ▼                                               │
-│  ┌─────────────────────────────┐                        │
-│  │   YOLODetector (x2)         │                        │
-│  │   - personDetector (COCO)   │                        │
-│  │   - basketDetector (Custom) │                        │
-│  └──────────────┬──────────────┘                        │
-│                 │                                       │
-│                 ▼                                       │
-│  ┌─────────────────────────────┐                        │
-│  │   Classification            │                        │
-│  │   (point-in-box)            │                        │
-│  └──────────────┬──────────────┘                        │
-│                 │                                       │
-│                 ▼                                       │
-│  ┌─────────────────────────────┐    ┌─────────────────┐ │
-│  │   ROS Publisher             │───▶│ /basketball_player│
-│  │   geometry_msgs/Point       │    │ topic            │ │
-│  └─────────────────────────────┘    └─────────────────┘ │
-└─────────────────────────────────────────────────────────┘
-```
-
----
+Le controle servo en production se fait via le noeud ROS 2 `servo_node` qui mappe la position X du joueur detecte sur l'angle du servo (0-180 degres).
 
 ## TODO
 
-- [x] Envoi des données sur un topic ROS 2
-- [ ] Entrainer le modele avec des nouvelles données pour pouvoir identifier une balle floue en dribble ou dans les mains du joueur
-- [ ] Réussir à estimer la distance du joueur
-- [x] Noeud subscriber pour les servomoteurs
-- [ ] Noeud subscriber pour les moteurs de déplacement
+- [x] Envoi des donnees sur un topic ROS 2
+- [x] Noeud subscriber servo moteur (`servo_node`)
+- [ ] Entrainer le modele avec des nouvelles donnees (balle floue en dribble, balle dans les mains)
+- [ ] Estimer la distance du joueur
+- [ ] Noeud subscriber pour les moteurs de deplacement
 - [ ] Lancement via launch file ROS 2
 
-## Benchmark
+## Modele custom
 
-| Version | FPS min | FPS max |
-|---------|---------|---------|
-| C++ (ONNX) | 5 | 10.4 |
-| Python (PyTorch) | 4 | 9.4 |
-
-## Modèle custom
-
-Le modèle de détection de ballon a été entraîné via la plateforme Ultralytics :
-[https://platform.ultralytics.com/fabien-gautier/intelligent-osprey/exp](https://platform.ultralytics.com/fabien-gautier/intelligent-osprey/exp?tab=export)
+Le modele de detection de ballon a ete entraine via la plateforme Ultralytics.
 
 ## Licence
 
-Projet académique / personnel.
+MIT
