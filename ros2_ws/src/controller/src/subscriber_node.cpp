@@ -39,8 +39,7 @@ private:
         } else if (target > 0.6) {
             RCLCPP_INFO(this->get_logger(), "Turn Right");
         }
-        // TODO : Implémenter servo+moteurs
-        // TODO: moteurs de deplacement
+        // TODO: implement motor control
         (void)y;
     }
 

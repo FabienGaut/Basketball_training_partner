@@ -22,7 +22,7 @@ def capture(config, person_model, basket_model):
 
     cap = cv2.VideoCapture(webcam_index)
     if not cap.isOpened():
-        raise RuntimeError("Webcam non accessible")
+        raise RuntimeError("Webcam not accessible")
 
     # FPS calculation variables
     prev_time = time.time()

@@ -11,7 +11,7 @@ int main(int argc, char* argv[])
 
     auto node = rclcpp::Node::make_shared("basketball_publisher");
     node->declare_parameter<std::string>("config_path", "/workspace/ball_detection/config/config.ini");
-    auto qos = rclcpp::SensorDataQoS();  // QoS optimisé pour données capteur
+    auto qos = rclcpp::SensorDataQoS();
 
     auto publisher = node->create_publisher<geometry_msgs::msg::Point>(
         "basketball_player",

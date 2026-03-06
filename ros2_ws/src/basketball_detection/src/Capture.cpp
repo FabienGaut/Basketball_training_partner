@@ -10,7 +10,7 @@ void capture(const Config& config, YOLODetector& personDetector, YOLODetector& b
     cap.set(cv::CAP_PROP_BUFFERSIZE, 1);
 
     if (!cap.isOpened()) {
-        throw std::runtime_error("Webcam non accessible");
+        throw std::runtime_error("Webcam not accessible");
     }
 
     std::cout << "Webcam opened, starting detection..." << std::endl;
@@ -62,33 +62,29 @@ void capture(const Config& config, YOLODetector& personDetector, YOLODetector& b
         }
 
         // ========= DRAW PERSONS / PLAYERS =========
-        // Logique de classification person vs basketball player :
-        // Pour chaque personne détectée, on vérifie si le centre d'un ballon
-        // se trouve à l'intérieur de sa bounding box. Si c'est le cas,
-        // on considère que cette personne "possède" le ballon et on la
-        // reclassifie en "basketball player" (affichée en vert au lieu de bleu).
+        // For each detected person, check if a ball center falls within their
+        // bounding box. If so, reclassify as "basketball player" (green instead of blue).
         if (config.drawPlayers) {
             for (const auto& person : persons) {
                 std::string label = "person";
-                cv::Scalar color(255, 0, 0);  // Bleu par défaut pour une personne simple
+                cv::Scalar color(255, 0, 0);  // Blue by default
 
                 
                 for (const auto& ball : balls) {
-                    // Calcul du centre du ballon
+                    // Ball center
                     int cx = (ball.x1 + ball.x2) / 2;
                     int cy = (ball.y1 + ball.y2) / 2;
 
-                    // Si le centre du ballon est dans la bounding box de la personne,
-                    // cette personne est considérée comme un "basketball player"
+                    // If ball center is inside the person's bounding box -> basketball player
                     if (pointInBox(cx, cy, person.x1, person.y1, person.x2, person.y2)) {
                         label = "basketball player";
-                        color = cv::Scalar(0, 255, 0);  // Vert pour un joueur avec ballon
+                        color = cv::Scalar(0, 255, 0);  // Green for player with ball
 
                         if (onPlayerDetected) {
                             onPlayerDetected(person);
                         }
 
-                        break;  // Pas besoin de vérifier les autres ballons
+                        break;  // No need to check other balls
                     }
                 }
 
