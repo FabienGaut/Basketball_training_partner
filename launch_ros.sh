@@ -6,7 +6,6 @@ COMPOSE_FILE="${SCRIPT_DIR}/docker/compose.yaml"
 CONTAINER="ball_detection_ros"
 CONFIG_PATH="/workspace/ball_detection/config/config.ini"
 
-# ─── Start container ──────────────────────────────────────────────────────────
 if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
     echo "[INFO] Starting Docker container..."
     docker compose -f "$COMPOSE_FILE" up -d
@@ -15,7 +14,6 @@ else
     echo "[INFO] Container already running."
 fi
 
-# ─── Build workspace ──────────────────────────────────────────────────────────
 echo "[INFO] Building ROS 2 workspace..."
 docker exec "$CONTAINER" bash -lc "
     source /opt/ros/jazzy/setup.bash &&
@@ -23,8 +21,7 @@ docker exec "$CONTAINER" bash -lc "
     colcon build --packages-select basketball_detection controller 2>&1
 "
 
-# ─── Launch nodes ─────────────────────────────────────────────────────────────
-echo "[INFO] Launching publisher_node (ball detection)..."
+echo "[INFO] Launching publisher_node..."
 docker exec -d "$CONTAINER" bash -lc "
     source /opt/ros/jazzy/setup.bash &&
     source /workspace/ball_detection/ros2_ws/install/setup.bash &&
@@ -32,7 +29,7 @@ docker exec -d "$CONTAINER" bash -lc "
         --ros-args -p config_path:=${CONFIG_PATH}
 "
 
-echo "[INFO] Launching servo_node (servo controller)..."
+echo "[INFO] Launching servo_node..."
 docker exec -d "$CONTAINER" bash -lc "
     source /opt/ros/jazzy/setup.bash &&
     source /workspace/ball_detection/ros2_ws/install/setup.bash &&
@@ -41,13 +38,8 @@ docker exec -d "$CONTAINER" bash -lc "
 "
 
 echo ""
-echo "[INFO] Both nodes are running."
-echo "       - publisher_node  ->  topic /basketball_player"
-echo "       - servo_node      ->  GPIO 18 (servo)"
-echo ""
-echo "Press Ctrl+C to stop all nodes."
+echo "[INFO] Both nodes are running. Press Ctrl+C to stop."
 
-# ─── Cleanup on exit ──────────────────────────────────────────────────────────
 cleanup() {
     echo ""
     echo "[INFO] Stopping nodes..."
