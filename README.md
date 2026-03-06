@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="Basketball Player Detection Logo" width="200">
+  <img src="ton_robot.png" width="50" style="image-rendering: pixelated;">
 </p>
 
 # Basketball Player Detection - Robot Defender
