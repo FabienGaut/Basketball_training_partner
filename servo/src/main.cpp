@@ -1,63 +1,89 @@
-#include <pigpio.h>
-#include <iostream>
-#include <termios.h>
+#include <wiringPi.h>
+#include <softPwm.h>
 #include <unistd.h>
+#include <cstdio>
+#include <cstdlib>
+#include <termios.h>
+#include <sys/select.h>
+#include <sys/time.h>
 
 #define SERVO_PIN 18
-#define STEP 5
+#define PWM_MIN 5
+#define PWM_MAX 25
 
-// 500-2500 µs -> 0-180°
-static int angleToPulse(int angle) {
-    return 500 + angle * 2000 / 180;
+termios orig_termios;
+
+void reset_terminal_mode()
+{
+    tcsetattr(0, TCSANOW, &orig_termios);
 }
 
-static int readKey() {
-    int ch = getchar();
-    if (ch == 27) {
-        ch = getchar();
-        if (ch == '[') {
-            ch = getchar();
-            if (ch == 'C') return 1;  // right arrow
-            if (ch == 'D') return -1; // left arrow
+void set_conio_terminal_mode()
+{
+    termios new_termios;
+
+    tcgetattr(0, &orig_termios);
+    new_termios = orig_termios;
+
+    new_termios.c_lflag &= ~(ICANON | ECHO);
+
+    tcsetattr(0, TCSANOW, &new_termios);
+
+    atexit(reset_terminal_mode);
+}
+
+int kbhit()
+{
+    timeval tv = {0L, 0L};
+    fd_set fds;
+
+    FD_ZERO(&fds);
+    FD_SET(0, &fds);
+
+    return select(1, &fds, NULL, NULL, &tv);
+}
+
+int main()
+{
+    wiringPiSetupGpio();
+    softPwmCreate(SERVO_PIN, 15, 200);
+
+    set_conio_terminal_mode();
+
+    int pwm = 15;
+    char c;
+
+    printf("Controle servo : fleche gauche/droite, q pour quitter\n");
+
+    while (true)
+    {
+        if (kbhit())
+        {
+            c = getchar();
+
+            if (c == 27) // séquence flèche
+            {
+                getchar();
+                c = getchar();
+
+                if (c == 'C') pwm++; // droite
+                if (c == 'D') pwm--; // gauche
+            }
+
+            if (c == 'q')
+                break;
+
+            if (pwm < PWM_MIN) pwm = PWM_MIN;
+            if (pwm > PWM_MAX) pwm = PWM_MAX;
+
+            softPwmWrite(SERVO_PIN, pwm);
+
+            printf("\rPWM: %d ", pwm);
+            fflush(stdout);
         }
-    }
-    if (ch == 'q') return 0;
-    return -2;
-}
 
-int main() {
-    if (gpioInitialise() < 0) {
-        std::cerr << "Failed to initialize pigpio\n";
-        return 1;
+        usleep(10000);
     }
 
-    // raw terminal mode (no enter needed)
-    struct termios oldt, newt;
-    tcgetattr(STDIN_FILENO, &oldt);
-    newt = oldt;
-    newt.c_lflag &= ~(ICANON | ECHO);
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-
-    int angle = 90;
-    gpioServo(SERVO_PIN, angleToPulse(angle));
-    std::cout << "Angle: " << angle << "°  [left/right arrows, q to quit]\n";
-
-    while (true) {
-        int key = readKey();
-        if (key == 0) break;
-        if (key == -2) continue;
-
-        angle += key * STEP;
-        if (angle < 0) angle = 0;
-        if (angle > 180) angle = 180;
-
-        gpioServo(SERVO_PIN, angleToPulse(angle));
-        std::cout << "\rAngle: " << angle << "°   " << std::flush;
-    }
-
-    gpioServo(SERVO_PIN, 0);
-    gpioTerminate();
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-    std::cout << "\n";
     return 0;
 }
