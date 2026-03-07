@@ -1,9 +1,9 @@
-# Servo - test pigpio
+# Servo - test wiringPi
 
 ## Compilation
 
 ```bash
-g++ -o servo_test src/main.cpp -lpigpio -lpthread
+g++ -o servo_test src/main.cpp -lwiringPi
 ```
 
 ## Execution (requires root for GPIO)
