@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     cmake \
     git \
     gettext \
+    fakeroot \
     # OpenCV (headless would be smaller but we need highgui for display)
     libopencv-dev \
     # Video4Linux for webcam

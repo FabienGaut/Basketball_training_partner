@@ -1,4 +1,4 @@
-# Servo - test pigpio
+# Servo - test wiringPi
 
 ## Compilation
 
