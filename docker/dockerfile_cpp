@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
     git \
+    gettext \
     # OpenCV (headless would be smaller but we need highgui for display)
     libopencv-dev \
     # Video4Linux for webcam
