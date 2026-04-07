@@ -1,8 +1,8 @@
 services:
   ball_detection_dev:
     build:
-      context: .
-      dockerfile: dockerfile_cpp
+      context: ..
+      dockerfile: docker/dockerfile_cpp
     container_name: ball_detection_ros
 
     volumes:
@@ -29,4 +29,42 @@ services:
     stdin_open: true
     tty: true
     working_dir: /workspace/ball_detection
+    command: /bin/bash
+
+  ball_detection_python:
+    build:
+      context: ..
+      dockerfile: docker/dockerfile_python
+    container_name: ball_detection_python
+
+    # Mount project as shared volume for development
+    volumes:
+      - ..:/workspace/ball_detection
+
+    # Share host's video devices for webcam access
+    devices:
+      - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1
+      - /dev/video2:/dev/video2
+      - /dev/video3:/dev/video3
+
+    # Environment variables
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+
+    # Network mode for ROS communication
+    network_mode: host
+
+    # Privileged mode for device access (webcam)
+    privileged: true
+
+    # Keep container running
+    stdin_open: true
+    tty: true
+
+    # Working directory
+    working_dir: /workspace/ball_detection
+
+    # Default command
     command: /bin/bash
