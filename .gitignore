@@ -101,3 +101,5 @@ AMENT_IGNORE
 # Large Docker images
 ros_image.tar
 *.tar
+
+servo/servo*

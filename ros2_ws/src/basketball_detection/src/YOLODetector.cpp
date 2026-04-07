@@ -2,12 +2,24 @@
 #include <iostream>
 #include <algorithm>
 #include <cstring>
+#include <thread>
 
-YOLODetector::YOLODetector(const std::string& modelPath, float confThreshold)
+YOLODetector::YOLODetector(const std::string& modelPath, float confThreshold,
+                           int intraOpThreads, int interOpThreads)
     : confThreshold_(confThreshold), env_(ORT_LOGGING_LEVEL_WARNING, "YOLODetector") {
 
     Ort::SessionOptions sessionOptions;
-    sessionOptions.SetIntraOpNumThreads(4);
+
+    // Use hardware_concurrency if threads set to 0 (auto)
+    int numThreads = intraOpThreads > 0
+        ? intraOpThreads
+        : static_cast<int>(std::thread::hardware_concurrency());
+    sessionOptions.SetIntraOpNumThreads(numThreads);
+
+    if (interOpThreads > 0) {
+        sessionOptions.SetInterOpNumThreads(interOpThreads);
+    }
+
     sessionOptions.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
 
     session_ = std::make_unique<Ort::Session>(env_, modelPath.c_str(), sessionOptions);
@@ -25,33 +37,30 @@ YOLODetector::YOLODetector(const std::string& modelPath, float confThreshold)
     auto outputName = session_->GetOutputNameAllocated(0, allocator);
     outputName_ = outputName.get();
 
+    // Pre-allocate input tensor buffer
+    inputTensor_.resize(3 * inputHeight_ * inputWidth_);
+
     std::cout << "Model loaded: " << modelPath << std::endl;
     std::cout << "  Input size: " << inputWidth_ << "x" << inputHeight_ << std::endl;
+    std::cout << "  Intra-op threads: " << numThreads << std::endl;
 }
 
 std::vector<Detection> YOLODetector::detect(const cv::Mat& frame, const std::vector<int>& filterClasses) {
     std::vector<Detection> detections;
 
-    // Preprocess
-    cv::Mat resized, blob;
-    cv::resize(frame, resized, cv::Size(inputWidth_, inputHeight_));
-    resized.convertTo(blob, CV_32F, 1.0 / 255.0);
+    // Preprocess: resize + normalize + HWC->CHW in one optimized call
+    cv::dnn::blobFromImage(frame, blob_, 1.0 / 255.0,
+                           cv::Size(inputWidth_, inputHeight_),
+                           cv::Scalar(0, 0, 0), true, false, CV_32F);
 
-    // HWC to CHW
-    std::vector<cv::Mat> channels(3);
-    cv::split(blob, channels);
-
-    std::vector<float> inputTensor(3 * inputHeight_ * inputWidth_);
-    size_t channelSize = inputHeight_ * inputWidth_;
-    std::memcpy(inputTensor.data(), channels[0].data, channelSize * sizeof(float));
-    std::memcpy(inputTensor.data() + channelSize, channels[1].data, channelSize * sizeof(float));
-    std::memcpy(inputTensor.data() + 2 * channelSize, channels[2].data, channelSize * sizeof(float));
+    // Copy blob data into pre-allocated tensor (blob is already CHW and contiguous)
+    std::memcpy(inputTensor_.data(), blob_.ptr<float>(), inputTensor_.size() * sizeof(float));
 
     // Create input tensor
     std::vector<int64_t> inputShape = {1, 3, inputHeight_, inputWidth_};
     Ort::MemoryInfo memInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
     Ort::Value inputOrt = Ort::Value::CreateTensor<float>(
-        memInfo, inputTensor.data(), inputTensor.size(), inputShape.data(), inputShape.size());
+        memInfo, inputTensor_.data(), inputTensor_.size(), inputShape.data(), inputShape.size());
 
     // Run inference
     const char* inputNames[] = {inputName_.c_str()};

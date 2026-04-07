@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """
-Script pour exporter les modèles YOLO (.pt) vers le format ONNX (.onnx)
-nécessaire pour la version C++ du détecteur.
-
+Export YOLO models (.pt) to ONNX format (.onnx).
 Usage: python export_models_to_onnx.py
 """
 
@@ -11,15 +9,13 @@ from configparser import ConfigParser
 import os
 
 def export_model(pt_path: str) -> str:
-    """Exporte un modèle YOLO .pt vers ONNX et retourne le chemin du fichier ONNX."""
     if not os.path.exists(pt_path):
-        print(f"Erreur: Modèle non trouvé: {pt_path}")
+        print(f"Error: Model not found: {pt_path}")
         return None
 
-    print(f"Export de {pt_path} vers ONNX...")
+    print(f"Exporting {pt_path} to ONNX...")
     model = YOLO(pt_path)
 
-    # Export vers ONNX avec les paramètres optimaux pour OpenCV DNN
     onnx_path = model.export(
         format='onnx',
         imgsz=640,
@@ -27,7 +23,7 @@ def export_model(pt_path: str) -> str:
         opset=12
     )
 
-    print(f"  -> Exporté: {onnx_path}")
+    print(f"  -> Exported: {onnx_path}")
     return onnx_path
 
 
@@ -38,13 +34,13 @@ if __name__ == "__main__":
     person_model_path = config.get("default", "PERSON_MODEL_PATH")
     basket_model_path = config.get("default", "BASKET_MODEL_PATH")
 
-    print("=== Export des modèles YOLO vers ONNX ===\n")
+    print("=== Exporting YOLO models to ONNX ===\n")
 
     person_onnx = export_model(person_model_path)
     basket_onnx = export_model(basket_model_path)
 
-    print("\n=== Export terminé ===")
-    print("\nMettez à jour config/config.ini avec les chemins ONNX:")
+    print("\n=== Export complete ===")
+    print("\nUpdate config/config.ini with the ONNX paths:")
     if person_onnx:
         print(f"  PERSON_MODEL_PATH = {person_onnx}")
     if basket_onnx:

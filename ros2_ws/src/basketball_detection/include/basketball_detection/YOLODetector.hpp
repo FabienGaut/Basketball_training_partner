@@ -10,7 +10,8 @@
 
 class YOLODetector {
 public:
-    YOLODetector(const std::string& modelPath, float confThreshold);
+    YOLODetector(const std::string& modelPath, float confThreshold,
+                 int intraOpThreads = 0, int interOpThreads = 0);
     std::vector<Detection> detect(const cv::Mat& frame, const std::vector<int>& filterClasses = {});
 
 private:
@@ -21,6 +22,10 @@ private:
     int inputWidth_;
     int inputHeight_;
     float confThreshold_;
+
+    // Pre-allocated buffers to avoid per-frame allocation
+    cv::Mat blob_;
+    std::vector<float> inputTensor_;
 };
 
 #endif // YOLODETECTOR_HPP

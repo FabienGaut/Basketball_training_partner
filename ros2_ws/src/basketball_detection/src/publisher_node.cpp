@@ -11,18 +11,24 @@ int main(int argc, char* argv[])
 
     auto node = rclcpp::Node::make_shared("basketball_publisher");
     node->declare_parameter<std::string>("config_path", "/workspace/ball_detection/config/config.ini");
-    auto publisher = node->create_publisher<geometry_msgs::msg::Point>("basketball_player", 10);
+    auto qos = rclcpp::SensorDataQoS();
 
+    auto publisher = node->create_publisher<geometry_msgs::msg::Point>(
+        "basketball_player",
+        qos);
+        
     try {
         std::string config_path = node->get_parameter("config_path").as_string();
         Config config = parseConfig(config_path);
 
         RCLCPP_INFO(node->get_logger(), "Configuration loaded");
         RCLCPP_INFO(node->get_logger(), "Loading person model...");
-        YOLODetector personDetector(config.personModelPath, config.confidenceThreshold);
+        YOLODetector personDetector(config.personModelPath, config.confidenceThreshold,
+                                    config.intraOpThreads, config.interOpThreads);
 
         RCLCPP_INFO(node->get_logger(), "Loading basket model...");
-        YOLODetector basketDetector(config.basketModelPath, config.confidenceThreshold);
+        YOLODetector basketDetector(config.basketModelPath, config.confidenceThreshold,
+                                    config.intraOpThreads, config.interOpThreads);
 
         RCLCPP_INFO(node->get_logger(), "Starting capture...");
 
