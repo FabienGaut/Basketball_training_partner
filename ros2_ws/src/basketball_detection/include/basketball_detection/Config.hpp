@@ -13,6 +13,9 @@ struct Config {
     bool drawBalls = true;
     bool drawPlayers = true;
     std::string logLevel = "INFO";
+    int processEveryNFrames = 1;
+    int intraOpThreads = 0;
+    int interOpThreads = 0;
 };
 
 Config parseConfig(const std::string& filename);

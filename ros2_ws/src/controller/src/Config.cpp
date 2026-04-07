@@ -1,7 +1,14 @@
 #include "Config.hpp"
-#include "Utils.hpp"
 #include <fstream>
 #include <iostream>
+#include <algorithm>
+#include <cctype>
+
+static std::string trim(const std::string& str) {
+    auto start = std::find_if_not(str.begin(), str.end(), ::isspace);
+    auto end = std::find_if_not(str.rbegin(), str.rend(), ::isspace).base();
+    return (start < end) ? std::string(start, end) : std::string();
+}
 
 Config parseConfig(const std::string& filename) {
     Config config;
@@ -34,6 +41,7 @@ Config parseConfig(const std::string& filename) {
                 else if (key == "PERSON_MODEL_PATH") config.personModelPath = value;
                 else if (key == "BASKET_MODEL_PATH") config.basketModelPath = value;
                 else if (key == "FRAME_WIDTH") config.frameWidth = std::stoi(value);
+                else if (key == "FRAME_HEIGHT") config.frameHeight = std::stoi(value);
                 else if (key == "log_level") config.logLevel = value;
             }
             else if (currentSection == "Visualisation") {

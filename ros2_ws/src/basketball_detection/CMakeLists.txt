@@ -26,7 +26,7 @@ find_package(OpenCV REQUIRED)
 # =====================
 # ONNX Runtime
 # =====================
-set(ONNXRUNTIME_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/deps/onnxruntime-linux-x64-1.17.0")
+set(ONNXRUNTIME_ROOT "$ENV{ONNXRUNTIME_ROOT}")
 set(ONNXRUNTIME_INCLUDE_DIR "${ONNXRUNTIME_ROOT}/include")
 set(ONNXRUNTIME_LIB_DIR "${ONNXRUNTIME_ROOT}/lib")
 

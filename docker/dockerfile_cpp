@@ -1,13 +1,20 @@
-# Dockerfile for Basketball Player Detection - ROS Jazzy C++ Development
-# Base image: ros:jazzy (Ubuntu 24.04)
-FROM ros:jazzy
+# Dockerfile for Basketball Player Detection - ROS 2 Jazzy (lightweight)
+FROM ros:jazzy-ros-base
 
-# Avoid interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Set working directory
 WORKDIR /workspace
 
+# Install only required runtime/build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    git \
+    gettext \
+    fakeroot \
+    # OpenCV (headless would be smaller but we need highgui for display)
+    libopencv-dev \
+    # Video4Linux for webcam
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # Build tools
@@ -20,36 +27,39 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # Video4Linux for webcam support
     v4l-utils \
     libv4l-dev \
-    # X11 for GUI display
-    libx11-dev \
-    libxext-dev \
-    libxrender-dev \
-    # ROS2 development packages
-    ros-jazzy-cv-bridge \
-    ros-jazzy-image-transport \
-    ros-jazzy-vision-opencv \
-    ros-jazzy-sensor-msgs \
-    ros-jazzy-std-msgs \
+    # X11 minimal for GUI display
+    libx11-6 \
+    libxext6 \
+    libxrender1 \
+    # ROS 2 packages actually used by the project
     ros-jazzy-geometry-msgs \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Download and install ONNX Runtime
-RUN mkdir -p /opt/onnxruntime && \
-    cd /opt/onnxruntime && \
-    wget -q https://github.com/microsoft/onnxruntime/releases/download/v1.17.0/onnxruntime-linux-x64-1.17.0.tgz && \
-    tar -xzf onnxruntime-linux-x64-1.17.0.tgz && \
-    rm onnxruntime-linux-x64-1.17.0.tgz
+# Install wiringPi from source (not available in standard apt repos)
+RUN git clone --depth=1 --branch 3.10 https://github.com/WiringPi/WiringPi.git /tmp/WiringPi && \
+    cd /tmp/WiringPi && \
+    ./build debian && \
+    dpkg -i debian-template/wiringpi_*.deb && \
+    rm -rf /tmp/WiringPi
 
-# Set ONNX Runtime environment variables
-ENV ONNXRUNTIME_ROOT=/opt/onnxruntime/onnxruntime-linux-x64-1.17.0
+# Download ONNX Runtime (architecture-aware)
+ARG TARGETARCH
+RUN mkdir -p /opt/onnxruntime && \
+    apt-get update && apt-get install -y --no-install-recommends wget ca-certificates && \
+    ORT_ARCH=$(if [ "$TARGETARCH" = "arm64" ]; then echo "aarch64"; else echo "x64"; fi) && \
+    wget -q -O /tmp/ort.tgz https://github.com/microsoft/onnxruntime/releases/download/v1.17.0/onnxruntime-linux-${ORT_ARCH}-1.17.0.tgz && \
+    tar -xzf /tmp/ort.tgz -C /opt/onnxruntime && \
+    ln -s /opt/onnxruntime/onnxruntime-linux-${ORT_ARCH}-1.17.0 /opt/onnxruntime/current && \
+    rm /tmp/ort.tgz && \
+    apt-get purge -y wget && apt-get autoremove -y && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+ENV ONNXRUNTIME_ROOT=/opt/onnxruntime/current
 ENV LD_LIBRARY_PATH=${ONNXRUNTIME_ROOT}/lib:${LD_LIBRARY_PATH}
 
 # Source ROS setup in bashrc
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc
 
-# Set display for GUI applications
-ENV DISPLAY=:0
-
-# Default command
 CMD ["/bin/bash"]

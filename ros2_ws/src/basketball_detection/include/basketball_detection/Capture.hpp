@@ -6,7 +6,7 @@
 #include "basketball_detection/Detection.hpp"
 #include <functional>
 
-// Callback appelé quand un joueur de basket est détecté (personne avec ballon)
+// Callback invoked when a basketball player is detected (person with ball)
 using PlayerCallback = std::function<void(const Detection&)>;
 
 void capture(const Config& config,
