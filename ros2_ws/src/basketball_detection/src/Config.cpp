@@ -36,6 +36,9 @@ Config parseConfig(const std::string& filename) {
                 else if (key == "FRAME_WIDTH") config.frameWidth = std::stoi(value);
                 else if (key == "FRAME_HEIGHT") config.frameHeight = std::stoi(value);
                 else if (key == "log_level") config.logLevel = value;
+                else if (key == "process_every_n_frames") config.processEveryNFrames = std::max(1, std::stoi(value));
+                else if (key == "intra_op_threads") config.intraOpThreads = std::stoi(value);
+                else if (key == "inter_op_threads") config.interOpThreads = std::stoi(value);
             }
             else if (currentSection == "Visualisation") {
                 if (key == "draw_balls") config.drawBalls = (value == "true" || value == "True" || value == "1");
