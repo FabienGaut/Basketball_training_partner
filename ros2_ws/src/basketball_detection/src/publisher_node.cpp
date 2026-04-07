@@ -23,10 +23,12 @@ int main(int argc, char* argv[])
 
         RCLCPP_INFO(node->get_logger(), "Configuration loaded");
         RCLCPP_INFO(node->get_logger(), "Loading person model...");
-        YOLODetector personDetector(config.personModelPath, config.confidenceThreshold);
+        YOLODetector personDetector(config.personModelPath, config.confidenceThreshold,
+                                    config.intraOpThreads, config.interOpThreads);
 
         RCLCPP_INFO(node->get_logger(), "Loading basket model...");
-        YOLODetector basketDetector(config.basketModelPath, config.confidenceThreshold);
+        YOLODetector basketDetector(config.basketModelPath, config.confidenceThreshold,
+                                    config.intraOpThreads, config.interOpThreads);
 
         RCLCPP_INFO(node->get_logger(), "Starting capture...");
 

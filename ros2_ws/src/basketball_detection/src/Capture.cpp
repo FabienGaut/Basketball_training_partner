@@ -4,10 +4,13 @@
 #include <sstream>
 #include <iomanip>
 #include <chrono>
+#include <future>
 
 void capture(const Config& config, YOLODetector& personDetector, YOLODetector& basketDetector, PlayerCallback onPlayerDetected) {
     cv::VideoCapture cap(config.webcamIndex, cv::CAP_V4L2);
     cap.set(cv::CAP_PROP_BUFFERSIZE, 1);
+    cap.set(cv::CAP_PROP_FRAME_WIDTH, config.frameWidth);
+    cap.set(cv::CAP_PROP_FRAME_HEIGHT, config.frameHeight);
 
     if (!cap.isOpened()) {
         throw std::runtime_error("Webcam not accessible");
@@ -19,7 +22,12 @@ void capture(const Config& config, YOLODetector& personDetector, YOLODetector& b
     auto prevTime = std::chrono::high_resolution_clock::now();
     double fps = 0.0;
     int frameCount = 0;
-    const int fpsUpdateInterval = 10; // Update FPS every 10 frames
+    const int fpsUpdateInterval = 10;
+
+    // Skip-frame: reuse last detections on skipped frames
+    std::vector<Detection> lastPersons;
+    std::vector<Detection> lastBalls;
+    int skipCounter = 0;
 
     while (true) {
         cv::Mat frame;
@@ -37,12 +45,26 @@ void capture(const Config& config, YOLODetector& personDetector, YOLODetector& b
             frameCount = 0;
         }
 
-        // ========= INFERENCE =========
-        // Detect persons (class 0 in COCO)
-        std::vector<Detection> persons = personDetector.detect(frame, {0});
+        // ========= INFERENCE (with skip-frame) =========
+        skipCounter++;
+        if (skipCounter >= config.processEveryNFrames) {
+            skipCounter = 0;
 
-        // Detect balls (class 32 = sports ball in COCO, or class 0 for custom model)
-        std::vector<Detection> balls = basketDetector.detect(frame, {});
+            // Run both detections in parallel using std::async
+            auto personFuture = std::async(std::launch::async, [&]() {
+                return personDetector.detect(frame, {0});
+            });
+            auto basketFuture = std::async(std::launch::async, [&]() {
+                return basketDetector.detect(frame, {});
+            });
+
+            lastPersons = personFuture.get();
+            lastBalls = basketFuture.get();
+        }
+
+        // Use last detection results (current or cached from skip-frame)
+        const auto& persons = lastPersons;
+        const auto& balls = lastBalls;
 
         // ========= DRAW BALLS =========
         if (config.drawBalls) {
@@ -62,29 +84,25 @@ void capture(const Config& config, YOLODetector& personDetector, YOLODetector& b
         }
 
         // ========= DRAW PERSONS / PLAYERS =========
-        // For each detected person, check if a ball center falls within their
-        // bounding box. If so, reclassify as "basketball player" (green instead of blue).
         if (config.drawPlayers) {
             for (const auto& person : persons) {
                 std::string label = "person";
-                cv::Scalar color(255, 0, 0);  // Blue by default
+                cv::Scalar color(255, 0, 0);
 
-                
+
                 for (const auto& ball : balls) {
-                    // Ball center
                     int cx = (ball.x1 + ball.x2) / 2;
                     int cy = (ball.y1 + ball.y2) / 2;
 
-                    // If ball center is inside the person's bounding box -> basketball player
                     if (pointInBox(cx, cy, person.x1, person.y1, person.x2, person.y2)) {
                         label = "basketball player";
-                        color = cv::Scalar(0, 255, 0);  // Green for player with ball
+                        color = cv::Scalar(0, 255, 0);
 
                         if (onPlayerDetected) {
                             onPlayerDetected(person);
                         }
 
-                        break;  // No need to check other balls
+                        break;
                     }
                 }
 
