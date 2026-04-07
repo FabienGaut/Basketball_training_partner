@@ -8,6 +8,13 @@ from configparser import ConfigParser
 import torch
 from ultralytics import YOLO
 
+# TODO: Quantification INT8 — exporter avec model.export(format='onnx', int8=True)
+# TODO: TensorRT (si GPU NVIDIA) — model.export(format='engine') pour gain 3-5x
+# TODO: OpenVINO (si Intel CPU) — model.export(format='openvino') pour gain 2-3x
+# TODO: NCNN (si ARM/Raspberry Pi) — model.export(format='ncnn')
+# TODO: Fusionner les 2 modèles en un seul multi-classe (person + ball) pour diviser l'inférence par 2
+# TODO: Découpler capture webcam dans un thread séparé (producteur/consommateur)
+
 
 def point_in_box(px, py, box):
     x1, y1, x2, y2 = box
@@ -17,15 +24,31 @@ def point_in_box(px, py, box):
 def capture(config, person_model, basket_model):
     conf_threshold = config.getfloat("default", "confidence_threshold")
     webcam_index = config.getint("default", "webcam_index")
+    frame_width = config.getint("default", "FRAME_WIDTH")
+    frame_height = config.getint("default", "FRAME_HEIGHT")
+    process_every_n = config.getint("default", "process_every_n_frames", fallback=1)
+    input_size = 320  # Reduced from 640 for ~3x faster inference
 
     cap = cv2.VideoCapture(webcam_index)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
+
     if not cap.isOpened():
         raise RuntimeError("Webcam not accessible")
+
+    device = next(person_model.parameters()).device
+    use_half = device.type == "cuda"
 
     prev_time = time.time()
     fps = 0.0
     frame_count = 0
     fps_update_interval = 10
+
+    # Skip-frame: reuse last detections on skipped frames
+    last_persons = []
+    last_balls = []
+    skip_counter = 0
 
     while True:
         ret, frame = cap.read()
@@ -40,35 +63,47 @@ def capture(config, person_model, basket_model):
             prev_time = current_time
             frame_count = 0
 
-        person_results = person_model(
-            frame,
-            conf=conf_threshold,
-            classes=[0],  # COCO: person = 0
-            verbose=False
-        )[0]
+        # Inference with skip-frame
+        skip_counter += 1
+        if skip_counter >= process_every_n:
+            skip_counter = 0
 
-        basket_results = basket_model(
-            frame,
-            conf=conf_threshold,
-            verbose=False
-        )[0]
+            person_results = person_model(
+                frame,
+                conf=conf_threshold,
+                classes=[0],  # COCO: person = 0
+                verbose=False,
+                imgsz=input_size,
+                half=use_half,
+            )[0]
 
-        persons = []
-        balls = []
+            basket_results = basket_model(
+                frame,
+                conf=conf_threshold,
+                verbose=False,
+                imgsz=input_size,
+                half=use_half,
+            )[0]
 
-        for box in person_results.boxes:
-            x1, y1, x2, y2 = map(int, box.xyxy[0])
-            conf = float(box.conf[0])
-            persons.append((x1, y1, x2, y2, conf))
+            last_persons = []
+            last_balls = []
 
-        for box in basket_results.boxes:
-            cls_id = int(box.cls[0])
-            cls_name = basket_model.names[cls_id]
-
-            if cls_name in ["basketball", "sports ball"]:
+            for box in person_results.boxes:
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
                 conf = float(box.conf[0])
-                balls.append((x1, y1, x2, y2, conf))
+                last_persons.append((x1, y1, x2, y2, conf))
+
+            for box in basket_results.boxes:
+                cls_id = int(box.cls[0])
+                cls_name = basket_model.names[cls_id]
+
+                if cls_name in ["basketball", "sports ball"]:
+                    x1, y1, x2, y2 = map(int, box.xyxy[0])
+                    conf = float(box.conf[0])
+                    last_balls.append((x1, y1, x2, y2, conf))
+
+        persons = last_persons
+        balls = last_balls
 
         if config.getboolean("Visualisation", "draw_balls"):
             for bx1, by1, bx2, by2, bconf in balls:
